@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Port preview fixture</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #e5f2ec;
+        color: #1d2924;
+        font:
+          16px system-ui,
+          sans-serif;
+      }
+      main {
+        width: min(420px, calc(100% - 32px));
+        padding: 24px;
+        border: 1px solid #b1c9bd;
+        border-radius: 20px;
+        background: #f7fbf7;
+        box-shadow: 0 12px 36px #263c3020;
+      }
+      .mark {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 14px;
+        background: #8bddb4;
+        font-size: 25px;
+      }
+      h1 {
+        margin: 20px 0 4px;
+        font-size: 24px;
+      }
+      p {
+        margin: 0;
+        color: #617269;
+      }
+      button {
+        margin-top: 22px;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        background: #1d2924;
+        color: white;
+        font: inherit;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">✦</div>
+      <h1>A little site, running</h1>
+      <p>Local Ladle port fixture · this is an actual iframe.</p>
+      <button onclick="this.textContent = 'It works!'">Try the page</button>
+    </main>
+  </body>
+</html>

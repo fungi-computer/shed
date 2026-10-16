@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // The backend tests share Shiitake's workerd DurableObject fixture.
+    "test:unit": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tooling/repository/scripts/{test-file-pool,proof-budget}.{mjs,d.mts}",
+        "$TURBO_ROOT$/.agents/skills/orchestrate-multi-lane-work/scripts/proof-time-bound.sh",
+        "$TURBO_ROOT$/packages/shiitake/test/fixtures/cloudflare-workers.fixture.ts",
+      ],
+    },
+  },
+}

@@ -1,0 +1,13 @@
+/* Ghostty's hidden input caret otherwise appears beside its drawn cursor. */
+.terminal-host textarea {
+  caret-color: transparent;
+}
+
+.terminal-host canvas {
+  outline: none;
+}
+
+/* Keep an iframe from consuming pointer movement during a divider drag. */
+.shed-workspace:has([role="separator"]:active) iframe {
+  pointer-events: none;
+}

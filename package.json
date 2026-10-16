@@ -1,0 +1,154 @@
+{
+  "name": "@fungi.computer/shed",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p backend/tsconfig.json --noEmit",
+    "lint": "eslint src backend test workbench --max-warnings=0"
+  },
+  "dependencies": {
+    "@fungi.computer/cairn": "0.0.1",
+    "@fungi.computer/agar": "0.1.0",
+    "@fungi.computer/caps": "0.0.2",
+    "@fungi.computer/lantern": "0.1.1",
+    "@fungi.computer/maosaico": "0.0.1",
+    "@fungi.computer/sigils": "0.0.1",
+    "@fungi.computer/stipe": "0.0.1",
+    "@fungi.computer/whistle": "0.0.1",
+    "ghostty-web": "0.4.0",
+    "lucide-react": "0.460.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@tanstack/react-query": "5.102.8",
+    "effect": "4.0.2",
+    "@fungi.computer/computer": "0.0.1",
+    "zod": "4.4.3",
+    "@fungi.computer/braid": "0.0.1",
+    "@fungi.computer/gills": "0.0.1"
+  },
+  "devDependencies": {
+    "@ladle/react": "5.1.1",
+    "@tailwindcss/vite": "4.2.1",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vite": "8.2.2",
+    "vite-plugin-singlefile": "2.3.3",
+    "vitest": "4.1.11",
+    "playwright": "1.62.1",
+    "@cloudflare/workers-types": "5.20260828.1",
+    "@fungi.computer/puffball": "0.0.2",
+    "esbuild": "0.28.2",
+    "eslint": "10.9.1",
+    "tsx": "4.23.12",
+    "jsdom": "29.0.1",
+    "@types/node": "24.13.3",
+    "@tailwindcss/cli": "4.2.1"
+  },
+  "fungi": {
+    "build": {
+      "stylesheets": [
+        "src/shed.css"
+      ],
+      "react": true
+    },
+    "app": {
+      "icon": "computer",
+      "capabilities": [
+        "computer.execute",
+        "computer.readFile",
+        "computer.writeFile"
+      ],
+      "handlers": [],
+      "roles": [
+        "terminal"
+      ],
+      "commands": [
+        {
+          "id": "refresh-processes",
+          "title": "Refresh processes",
+          "category": "Computer",
+          "description": "Refresh the running processes on this Computer.",
+          "projections": {
+            "palette": {}
+          }
+        },
+        {
+          "id": "refresh-ports",
+          "title": "Refresh forwarded ports",
+          "category": "Computer",
+          "description": "Refresh the forwarded ports on this Computer.",
+          "projections": {
+            "palette": {}
+          }
+        }
+      ],
+      "displayName": "Shed",
+      "backend": {
+        "bindings": [
+          {
+            "name": "COMPUTER",
+            "operations": [
+              "ports",
+              "processes",
+              "exec",
+              "processStart",
+              "processKill",
+              "write",
+              "read",
+              "preview",
+              "workflowGitPass"
+            ]
+          }
+        ]
+      }
+    },
+    "backendDefinition": "backend/methods.ts"
+  },
+  "description": "Shed: a terminal on your Computer, with its ports and processes, for Oyster",
+  "author": "Levi <levi@technomancy.dev>",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "backend",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fungi-computer/shed.git"
+  },
+  "botanical": {
+    "role": "app",
+    "operations": {
+      "lint": "required",
+      "typecheck": "required",
+      "build": "required",
+      "test": "required",
+      "docs": {
+        "status": "not-applicable",
+        "reason": "Private App has no public package documentation"
+      },
+      "pack": {
+        "status": "not-applicable",
+        "reason": "Delivered as captured HTML, not an npm package"
+      },
+      "smoke": {
+        "status": "not-applicable",
+        "reason": "Mounted browser acceptance belongs to a combined App witness"
+      },
+      "stranger": {
+        "status": "not-applicable",
+        "reason": "App consumer uses Agar; no external npm package consumer"
+      }
+    }
+  },
+  "exports": {
+    "./backend": "./backend/index.ts",
+    "./package.json": "./package.json"
+  },
+  "packageManager": "pnpm@11.24.0"
+}
