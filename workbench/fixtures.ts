@@ -1,6 +1,8 @@
 import type { AppContext, AppRoot } from "@fungi.computer/agar";
 import { createCapabilityRegistry } from "@fungi.computer/agar";
+import { appMethods } from "@fungi.computer/agar/backend";
 import { computerTerminal } from "@fungi.computer/agar/computer";
+import { runCommandInputSchema } from "../src/light-shell/run-command-contract.js";
 
 type ShedConnection = Pick<
   AppRoot,
@@ -107,6 +109,25 @@ export function createShedFixture({
         return Promise.resolve(session);
       },
     });
+  // Canned light-shell output: the preview never runs a Computer command.
+  capabilities.provide(appMethods, {
+    call: (_method: string, input: string) => {
+      const request = runCommandInputSchema.parse(JSON.parse(input));
+      return Promise.resolve({
+        requestId: "0199caff-aaaa-7000-8000-aaaaaaaaaaaa",
+        status: "succeeded",
+        output: {
+          status: "completed",
+          exitCode: 0,
+          stdout: request.command.endsWith("pwd")
+            ? `${request.cwd ?? "/workspace"}\n`
+            : "src\npackage.json\nREADME.md\n",
+          stderr: "",
+          truncated: false,
+        },
+      });
+    },
+  });
   const app: ShedConnection = {
     ui: status ? { ...previewUi, ...status } : previewUi,
     commands: { register: () => Promise.resolve(() => undefined) },

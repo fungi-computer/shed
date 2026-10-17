@@ -6,17 +6,35 @@ function display(value: string): string {
   return value.replace(/\p{Cc}/gu, " ");
 }
 
+/** Join parts with " · ", starting a new row before a part would overflow. */
+function pack(parts: readonly string[], cols: number): string {
+  const rows: string[] = [];
+  let row = "";
+  for (const part of parts) {
+    const next = row ? `${row} · ${part}` : part;
+    if (row && next.length > cols) {
+      rows.push(row);
+      row = part;
+    } else row = next;
+  }
+  rows.push(row);
+  return rows.join("\n");
+}
+
 /** Current host facts; configured Teams retain the shared Computer banner. */
 export function renderWelcome({
   cols,
   information,
   tty = true,
   noColor = false,
+  light = false,
 }: {
   cols: number;
   information: ComputerTerminalInformation;
   tty?: boolean;
   noColor?: boolean;
+  /** The light prompt follows the banner, so the hint names it. */
+  light?: boolean;
 }): string {
   const hasTeam = information.teamName !== "unconfigured";
   const banner = hasTeam
@@ -37,11 +55,16 @@ export function renderWelcome({
     facts.push(
       `${hasTeam ? "Fungi" : "Computer"} ${display(information.version)}`,
     );
-  const row = facts.join(" · ");
-  const status = row.length <= cols ? row : facts.join("\n");
+  // A narrow terminal gets whole facts per row, never one split mid-fact.
+  const status = pack(facts, cols);
   // These commands work before a workspace has any files or project tooling.
   // One short row stays intact when the font settles after the initial fit.
-  const hint = "try: ls · pwd · node -v · exit";
+  const hint = light
+    ? pack(
+        ["light shell", "instant", "try: ls", "rg TODO", "jq . package.json"],
+        cols,
+      )
+    : "try: ls · pwd · node -v · exit";
   return `${banner}${status}\n${hint}\n\n`.replace(/\r?\n/g, "\r\n");
 }
 

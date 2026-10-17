@@ -47,7 +47,7 @@ export function editLine(state: LineState, edit: LineEdit): LineState {
 /** Null leaves the event with Ghostty's ordinary input handling. */
 export function editLineKey(
   state: LineState,
-  event: KeyboardEvent,
+  event: Pick<KeyboardEvent, "key" | "ctrlKey" | "altKey" | "metaKey">,
 ): LineState | null {
   if (event.altKey || event.metaKey) return null;
   if (event.ctrlKey) {

@@ -1,3 +1,4 @@
+import { resultRows } from "@fungi.computer/agar/method-presentation";
 import { processesGill } from "./gills.js";
 import {
   processPageInputSchema,
@@ -68,6 +69,23 @@ const bytes = z.strictObject({
   encoding: z.literal("base64"),
   truncated: z.boolean(),
 });
+/** The script's command lines, without blanks and comments. */
+const commandLines = (command: string) =>
+  command
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"));
+/**
+ * A script reads by its last command: a script usually opens with setup
+ * (`set -eu`, `cd`) and ends with what it is for, such as a push.
+ */
+const lastCommand = (command: string) =>
+  commandLines(command).at(-1)?.slice(0, 80) ?? "a command";
+const scriptLength = (command: string) => {
+  const lines = commandLines(command).length;
+  return lines > 1 ? [`${String(lines)} commands`] : [];
+};
+
 export const appBackend = defineAppBackend<ShedMethodContext>({
   gills: [processesGill],
   methods: {
@@ -202,6 +220,29 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
         }),
         refusal,
       ]),
+      present: {
+        rows: resultRows,
+        verb: "ran",
+        row: ({ input, output }) =>
+          "error" in output
+            ? {
+                id: "refused",
+                title: "Shed could not run the command",
+                detail: output.error,
+                tone: "error",
+              }
+            : {
+                id: output.logPath,
+                title: `Shed ran ${lastCommand(input.command)}`,
+                detail: [
+                  output.exitCode === 0
+                    ? "Finished"
+                    : `Exited with code ${String(output.exitCode)}`,
+                  ...scriptLength(input.command),
+                ].join(" · "),
+                tone: output.exitCode === 0 ? "settled" : "error",
+              },
+      },
       handler: (input, context: ShedMethodContext, caller) => {
         const computer = context.env.COMPUTER;
         if (

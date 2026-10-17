@@ -1,21 +1,19 @@
 import type { AppRoot } from "@fungi.computer/agar";
-import type { ComputerTerminalInformation } from "@fungi.computer/agar/computer";
 import { Loader } from "@fungi.computer/caps/components/loader";
 import { useCallback, useState, type ReactNode } from "react";
 import {
   TerminalPanel,
+  type LightShellPort,
   type TerminalState,
   type TerminalStatus,
 } from "../terminal-panel.js";
-import { LightShellPanel, type LightRunInput } from "./panel.js";
 import { runLightCommand } from "./connector.js";
 
 /**
- * Shed's default Computer prompt: the light shell in front, the existing
- * full terminal behind it. The same `computer.terminal` session backs both —
- * it supplies the banner facts the light prompt shows and is the escalation
- * target — so this is a drop-in replacement for `TerminalPanel` wherever Shed
- * mounted it before.
+ * Shed's default Computer prompt: one Ghostty terminal with the light shell
+ * in front. The same `computer.terminal` session supplies the banner facts
+ * and is the escalation target for full commands, so this is a drop-in
+ * replacement for `TerminalPanel` wherever Shed mounted it before.
  */
 export function ShellPanel({
   app,
@@ -31,56 +29,31 @@ export function ShellPanel({
     state: TerminalState;
   }) => void;
 }) {
-  const [information, setInformation] =
-    useState<ComputerTerminalInformation | null>(null);
   const [terminalState, setTerminalState] = useState<TerminalState>("starting");
-  const [escalated, setEscalated] = useState(false);
-  const [run, setRun] = useState<string | null>(null);
+  const [hasInformation, setHasInformation] = useState(false);
 
   const handleTerminalStatus = useCallback(
     (status: TerminalStatus) => {
       onStatusChange?.({ name: status.name, state: status.state });
-      setInformation(status.information);
+      setHasInformation(status.information !== null);
       setTerminalState(status.state);
-      // A session the person ended (typing `exit` in the real shell) hands
-      // the prompt back to the light shell; a failed connect keeps showing
-      // the full panel's own retry affordance instead of hiding the error.
-      if (status.state === "closed" && escalated) {
-        setEscalated(false);
-        setRun(null);
-      }
     },
-    [onStatusChange, escalated],
+    [onStatusChange],
   );
 
-  const runLight = useCallback(
-    (input: LightRunInput, signal: AbortSignal) =>
+  const light: LightShellPort = {
+    runLight: (input, signal) =>
       runLightCommand(app.capabilities, input, signal),
-    [app],
-  );
+  };
 
-  const openFull = useCallback((input: LightRunInput) => {
-    setRun(input.command);
-    setEscalated(true);
-    return Promise.resolve();
-  }, []);
-
-  // No information yet covers two different moments: still connecting (show
-  // the light shell's own loader) and never connected at all — failed or
-  // closed before ever opening (undefined, so TerminalPanel's own retry
-  // overlay shows instead of a spinner with no way out).
-  const lightScreen =
+  // The terminal and its session are still coming up: one Loader. A connect
+  // that failed or closed before ever opening shows TerminalPanel's own retry
+  // overlay instead of a spinner with no way out.
+  const startingScreen =
     screen ??
-    (escalated ? undefined : information !== null ? (
-      <LightShellPanel
-        key={computerId}
-        information={information}
-        runLight={runLight}
-        openFull={openFull}
-      />
-    ) : terminalState === "starting" ? (
+    (!hasInformation && terminalState === "starting" ? (
       <div className="grid h-full min-h-0 flex-1 place-items-center">
-        <Loader size="sm" tone="primary" label="Connecting" />
+        <Loader size="sm" tone="primary" label="Starting shell" />
       </div>
     ) : undefined);
 
@@ -88,8 +61,8 @@ export function ShellPanel({
     <TerminalPanel
       app={app}
       computerId={computerId}
-      screen={lightScreen}
-      run={escalated ? run : null}
+      screen={startingScreen}
+      light={light}
       onStatusChange={handleTerminalStatus}
     />
   );

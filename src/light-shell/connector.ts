@@ -5,7 +5,33 @@ import {
   runCommandInputSchema,
   runCommandResultSchema,
 } from "./run-command-contract.js";
-import type { LightRunInput, LightRunResult } from "./panel.js";
+import { maximumCommandCharacters } from "@fungi.computer/computer/operations";
+
+export type LightRunInput = Readonly<{
+  command: string;
+  cwd: string;
+  env: Readonly<Record<string, string>>;
+}>;
+export type LightRunResult = Readonly<{
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  cwd: string;
+  env: Readonly<Record<string, string>>;
+}>;
+
+// `runCommand` has no env field and is an agent tool that must not change, and
+// the exec has no TTY. This prefix asks colour-aware tools for colour. GNU
+// `ls`/`grep` and `rg` stay plain without their own flags; none are injected.
+const colourPrefix =
+  "export FORCE_COLOR=1 CLICOLOR_FORCE=1 COLORTERM=truecolor TERM=xterm-256color; ";
+
+/** The script to exec: coloured when the prefix still fits the command bound. */
+function lightScript(command: string): string {
+  return colourPrefix.length + command.length <= maximumCommandCharacters
+    ? `${colourPrefix}${command}`
+    : command;
+}
 
 /**
  * Run one light-routed command through the Shed App's own `runCommand`
@@ -37,7 +63,7 @@ export async function runLightCommand(
       retryable: false,
     });
   const request = runCommandInputSchema.parse({
-    command: input.command,
+    command: lightScript(input.command),
     cwd: input.cwd,
   });
   const raw = await capabilities

@@ -1,0 +1,25 @@
+diff --git a/dist/ghostty-web.js b/dist/ghostty-web.js
+index a4ca427b95288e70c782ce303013cd644893dcec..43ae326184102a4d314eb160b0f6421581b44b45 100644
+--- a/dist/ghostty-web.js
++++ b/dist/ghostty-web.js
+@@ -1363,8 +1363,18 @@ class $ {
+   measureFont() {
+     const B = document.createElement("canvas").getContext("2d");
+     B.font = `${this.fontSize}px ${this.fontFamily}`;
+-    const g = B.measureText("M"), E = Math.ceil(g.width), C = g.actualBoundingBoxAscent || this.fontSize * 0.8, I = g.actualBoundingBoxDescent || this.fontSize * 0.2, D = Math.ceil(C + I) + 2, i = Math.ceil(C) + 1;
+-    return { width: E, height: D, baseline: i };
++    const width = Math.ceil(B.measureText("M").width);
++    // Botanical patch: size rows from the tallest ascent and deepest descent
++    // across every face the renderer draws, using glyphs that reach below the
++    // baseline. "M" alone has no descender, so rows came out too short and
++    // underscores, descenders and box-drawing lines were clipped or broken.
++    const faces = ["", "bold ", "italic ", "bold italic "].map((face) => {
++      B.font = `${face}${this.fontSize}px ${this.fontFamily}`;
++      return B.measureText("Mgjpqy()[]{}|_");
++    });
++    const ascent = Math.max(...faces.map((face) => face.actualBoundingBoxAscent || 0)) || this.fontSize * 0.8;
++    const descent = Math.max(...faces.map((face) => face.actualBoundingBoxDescent || 0)) || this.fontSize * 0.2;
++    return { width, height: Math.ceil(ascent + descent) + 2, baseline: Math.ceil(ascent) + 1 };
+   }
+   /**
+    * Remeasure font metrics (call after font loads or changes)

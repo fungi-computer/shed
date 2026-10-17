@@ -1,4 +1,4 @@
-import { LightShellPanel } from "../src/light-shell/panel.js";
+import { ShellPanel } from "../src/light-shell/shell-panel.js";
 import type { StoryDefault } from "@ladle/react";
 import { Button } from "@fungi.computer/caps/components/button";
 import type { ComputerProcess } from "@fungi.computer/agar/computer";
@@ -178,37 +178,15 @@ export const TerminalConnecting = () => (
 export const TerminalFailed = () => <Workbench terminalState="failed" />;
 export const TerminalClosed = () => <Workbench terminalState="closed" />;
 
-/** Controlled presentation ports: no Computer commands or backend starts. */
-export const Light = () => (
-  <div className="flex h-dvh min-h-[560px] flex-col gap-2 p-2">
-    <p className="text-xs text-base-content/60">
-      Light shell · local visual fixture · no commands run
-    </p>
-    <LightShellPanel
-      information={{
-        computerName: "studio",
-        teamName: "Acme",
-        modelDoor: "Workbench",
-        uptimeSeconds: 0,
-        version: "workbench",
-      }}
-      runLight={(input) =>
-        Promise.resolve({
-          stdout:
-            input.command === "pwd"
-              ? `${input.cwd}\n`
-              : "src\npackage.json\nREADME.md\n",
-          stderr: "",
-          exitCode: 0,
-          cwd: input.cwd,
-          env: input.env,
-        })
-      }
-      openFull={() =>
-        Promise.reject(
-          new Error("The visual fixture has no full execution backend"),
-        )
-      }
-    />
-  </div>
-);
+/** Controlled presentation ports: canned command output, no Computer. */
+export const Light = () => {
+  const fixture = createShedFixture();
+  return (
+    <div className="flex h-dvh min-h-[560px] flex-col gap-2 p-2">
+      <p className="text-xs text-base-content/60">
+        Light shell · local visual fixture · canned output, no Computer
+      </p>
+      <ShellPanel app={fixture.app} computerId="Workbench" />
+    </div>
+  );
+};
