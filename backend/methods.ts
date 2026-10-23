@@ -7,9 +7,10 @@ import {
 } from "./process-page.js";
 import * as z from "zod";
 import { Base64 } from "effect/encoding";
-import { computerPortInputSchema } from "@fungi.computer/computer/operations";
+import { computerPortInputSchema } from "@fungi.computer/computer-contract";
 import {
   runShedCommand,
+  computerCall,
   shedRunCommandInputSchema,
   shedRunInputSchema,
   shedStartInputSchema,
@@ -31,7 +32,7 @@ import {
   computerProcessSchema,
   processIdInputSchema,
   processKillOutputSchema,
-} from "@fungi.computer/computer/operations";
+} from "@fungi.computer/computer-contract";
 const empty = z.strictObject({});
 const command = runCommandInputSchema;
 const refusal = shedComputerRefusalSchema;
@@ -42,19 +43,19 @@ const commandReply = runCommandResultSchema;
 export type ShedMethodContext = Readonly<{
   runs?: ShedRuns;
   env: Readonly<{
-    COMPUTER?: Partial<ShedComputer> &
+    COMPUTER: ShedComputer &
       Readonly<{
-        ports?(input: Record<string, never>): Promise<WhistleJsonValue>;
-        preview?(input: { port: number }): Promise<z.core.util.JSONType>;
-        processKill?(
+        ports(input: Record<string, never>): Promise<WhistleJsonValue>;
+        preview(input: { port: number }): Promise<z.core.util.JSONType>;
+        processKill(
           input: z.output<typeof processIdInputSchema>,
         ): Promise<z.core.util.JSONType>;
-        read?(input: {
+        read(input: {
           path: string;
           byteOffset: number;
           byteLength: number;
         }): Promise<z.core.util.JSONType>;
-        exec?(input: z.output<typeof command>): Promise<WhistleJsonValue>;
+        exec(input: z.output<typeof command>): Promise<WhistleJsonValue>;
       }>;
   }>;
 }>;
@@ -97,7 +98,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       input: computerPortInputSchema,
       output: preview,
       handler: async (input, context: ShedMethodContext, caller) => {
-        if (!caller.computerId || !context.env.COMPUTER?.preview)
+        if (!caller.computerId)
           throw new Error("Computer preview access is not granted");
         // Project the issued URL; preview-row presentation policy stays with the host.
         return z
@@ -120,7 +121,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
         z.strictObject({ error: z.enum(["not_found", "ambiguous"]) }),
       ]),
       handler: async (input, context: ShedMethodContext, caller) => {
-        if (!caller.computerId || !context.env.COMPUTER?.read || !context.runs)
+        if (!caller.computerId || !context.runs)
           throw new Error("Computer file access is not granted");
         const log = context.runs.logPath(
           input.run,
@@ -151,7 +152,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       description:
         "Start one process on the pinned Computer and return its process and log path without waiting for exit.",
       effect: "write",
-      requires: ["computer.execute", "computer.writeFile"],
+      requires: ["computer.execute"],
       pending: true,
       input: shedStartInputSchema,
       output: z.union([
@@ -164,29 +165,19 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       ]),
       handler: (input, context: ShedMethodContext, caller) => {
         const computer = context.env.COMPUTER;
-        if (
-          !caller.computerId ||
-          !computer?.processStart ||
-          !computer.processes ||
-          !context.runs
-        )
+        if (!caller.computerId || !context.runs)
           throw new Error("Computer access is not granted");
         if (!caller.idempotencyKey)
           throw new Error(
             "A host idempotency key is required to start a process",
           );
-        const { processStart, processes, workflowGitPass, write } = computer;
+        const { processStart, processes } = computer;
         return context.runs.start(
           input,
           caller.computerId,
           caller.idempotencyKey,
           caller.actor,
-          {
-            processStart,
-            processes,
-            workflowGitPass,
-            write,
-          },
+          { processStart, processes },
         );
       },
     }),
@@ -197,20 +188,22 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       input: processIdInputSchema,
       output: z.union([processKillOutputSchema, refusal]),
       handler: async (input, context: ShedMethodContext, caller) => {
-        if (!caller.computerId || !context.env.COMPUTER?.processKill)
+        if (!caller.computerId)
           throw new Error("Computer access is not granted");
         if (!context.runs?.owns(input.id, caller.computerId, caller.actor))
           return refusal.parse({ error: "not_found" });
         return z
           .union([processKillOutputSchema, refusal])
-          .parse(await context.env.COMPUTER.processKill(input));
+          .parse(
+            await computerCall(() => context.env.COMPUTER.processKill(input)),
+          );
       },
     }),
     run: defineAppMethod({
       description:
         "Run one command on the pinned Computer, retaining a log and polling until it exits.",
       effect: "write",
-      requires: ["computer.execute", "computer.writeFile"],
+      requires: ["computer.execute"],
       pending: true,
       input: shedRunInputSchema,
       output: z.union([
@@ -245,14 +238,9 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       },
       handler: (input, context: ShedMethodContext, caller) => {
         const computer = context.env.COMPUTER;
-        if (
-          !caller.computerId ||
-          !computer?.processStart ||
-          !computer.processes ||
-          !context.runs
-        )
+        if (!caller.computerId || !context.runs)
           throw new Error("Computer access is not granted");
-        const { processStart, processes, workflowGitPass, write } = computer;
+        const { processStart, processes } = computer;
         if (!caller.idempotencyKey)
           throw new Error("A host idempotency key is required to start a run");
         return context.runs.run(
@@ -260,7 +248,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
           caller.computerId,
           caller.idempotencyKey,
           caller.actor,
-          { processStart, processes, workflowGitPass, write },
+          { processStart, processes },
         );
       },
     }),
@@ -273,9 +261,11 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       input: empty,
       output: portsReply,
       handler: async (input, context, caller) =>
-        caller.computerId === null || !context.env.COMPUTER?.ports
+        caller.computerId === null
           ? refusal.parse({ error: "not_granted" })
-          : portsReply.parse(await context.env.COMPUTER.ports(input)),
+          : portsReply.parse(
+              await computerCall(() => context.env.COMPUTER.ports(input)),
+            ),
     }),
     listProcesses: defineAppMethod({
       description:
@@ -285,7 +275,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       input: processPageInputSchema,
       output: processesReply,
       handler: async (input, context, caller) => {
-        if (caller.computerId === null || !context.env.COMPUTER?.processes)
+        if (caller.computerId === null)
           return refusal.parse({ error: "not_granted" });
         if (
           input.after !== undefined &&
@@ -293,7 +283,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
         )
           return refusal.parse({ error: "invalid" });
         const inventory = processesReply.parse(
-          await context.env.COMPUTER.processes({}),
+          await computerCall(() => context.env.COMPUTER.processes({})),
         );
         return "error" in inventory
           ? inventory
@@ -302,17 +292,17 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
     }),
     runCommand: defineAppMethod({
       description:
-        "Execute a shell command on the attached Computer, with an optional absolute cwd and a timeout up to 45 seconds. A Workflow step's admitted gitAccess reaches the command as $FUNGI_GIT_REMOTE with command-local Git credentials. The host mints request identity, owns the per-attachment execution budget and attribution. Each output stream is bounded to the Computer’s 64 KiB byte slice, with up to two extra UTF-8 bytes from a replacement character, and may be truncated.",
+        "Run a shell command on the attached Computer. Use cwd to choose an absolute working directory. The timeout is at most 45 seconds. In a Workflow Git step, use $FUNGI_GIT_REMOTE for the repository. Returns stdout, stderr, exitCode and a truncation flag for each stream, or an error code if the command cannot return output. A nonzero exitCode indicates failure or cancellation. Output may be truncated.",
       effect: "write",
-      requires: ["computer.execute", "computer.writeFile"],
+      requires: ["computer.execute"],
       input: shedRunCommandInputSchema,
       output: commandReply,
       handler: async (input, context, caller) => {
         const computer = context.env.COMPUTER;
-        if (caller.computerId === null || !computer?.exec)
+        if (caller.computerId === null)
           return refusal.parse({ error: "not_granted" });
-        const { exec, workflowGitPass, write } = computer;
-        return runShedCommand(input, { exec, workflowGitPass, write });
+        const { exec } = computer;
+        return runShedCommand(input, { exec });
       },
     }),
   },

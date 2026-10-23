@@ -31,5 +31,4 @@ allowBuilds:
   tree-sitter-typescript: true
   workerd: true
 patchedDependencies:
-  "@earendil-works/pi-ai@0.99.2": patches/@earendil-works__pi-ai@0.99.2.patch
   ghostty-web@0.4.0: patches/ghostty-web@0.4.0.patch

@@ -78,11 +78,11 @@ Agents call Shed through Oyster's MCP endpoint, or at
 `POST $OYSTER_URL/apps/shed/methods/<name>` with a key; see
 [Git, keys and MCP](https://github.com/fungi-computer/oyster#git-keys-and-mcp).
 
-| Method                                    | What it does                                                                                          |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `runCommand({command, cwd?, timeoutMs?})` | Runs a shell command for up to 45 seconds and returns its exit status and output (64 KiB per stream). |
-| `listProcesses({})`                       | Lists up to 64 processes on the Computer. Starts nothing.                                             |
-| `listPorts({})`                           | Lists up to 64 forwarded ports. Starts nothing.                                                       |
+| Method                                    | What it does                                                                                                                                                                                                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `runCommand({command, cwd?, timeoutMs?})` | Runs a shell command for up to 45 seconds. Returns `stdout`, `stderr`, `exitCode`, `stdoutTruncated` and `stderrTruncated` (64 KiB per stream), or `{ error: code }`. A budget refusal also supplies `kind` and `retryAfterMs`. Workflow Git commands use `$FUNGI_GIT_REMOTE`. |
+| `listProcesses({})`                       | Lists up to 64 processes on the Computer. Starts nothing.                                                                                                                                                                                                                      |
+| `listPorts({})`                           | Lists up to 64 forwarded ports. Starts nothing.                                                                                                                                                                                                                                |
 
 Workflows (see [Trellis](https://github.com/fungi-computer/trellis)) use a
 second set for longer work:
@@ -121,6 +121,18 @@ agent tools are in [backend/methods.ts](backend/methods.ts), and
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Local film replay
+
+`TerminalPanel` optionally accepts `onTerminalReady(handle)` after Ghostty and
+its font metrics are ready. The typed `TerminalFilmHandle` exposes `write`,
+`reset` and `resize` with Ghostty's ordinary signatures, plus
+`await handle.paint()` to finish drawing the current buffer to the canvas before
+capturing it. The handle follows theme/width renderer replacements and throws
+after unmount. Production callers omit the callback; terminal sessions and input
+stay owned by Shed. Replay callers should reset, resize, write their frame, then
+await `paint()`; a native write callback alone is not a canvas completion
+signal.
 
 ## This repository
 

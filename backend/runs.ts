@@ -1,31 +1,24 @@
 import * as z from "zod";
 import { Hex } from "effect/encoding";
 import type { HostActor } from "@fungi.computer/puffball/app-method-runtime";
-import {
-  workflowGitPassResultSchema,
-  type WorkflowGitPassResult,
-} from "@fungi.computer/agar/computer-contracts";
 import { resolvedGitAccessSchema } from "@fungi.computer/braid/git-access";
 import { pending } from "@fungi.computer/agar/backend-definition";
 import type { WhistleJsonValue } from "@fungi.computer/whistle";
 import { AppMethodRefusal } from "@fungi.computer/agar/backend";
 import {
   computerProcessSchema,
+  computerOperationResultSchema,
   maximumProcessRecords,
-  writeOutputSchema,
-  type ComputerFileWriteInput,
   processStartInputSchema,
   processListOutputSchema,
   type ComputerProcess,
-} from "@fungi.computer/computer/operations";
+} from "@fungi.computer/computer-contract";
 import {
   runCommandInputSchema,
   runCommandResultSchema,
   shedComputerRefusalSchema,
 } from "../src/light-shell/run-command-contract.js";
 
-/** What a Git command needs from a pass: its remote and any header credential. */
-type GitCredential = Pick<WorkflowGitPassResult, "remote" | "bearer">;
 const processInputSchema = processStartInputSchema.omit({
   requestId: true,
   requestScope: true,
@@ -49,12 +42,6 @@ export type ShedSql = {
   ): { toArray(): unknown[] };
 };
 export type ShedComputer = Readonly<{
-  workflowGitPass?:
-    | ((input: Record<string, never>) => Promise<z.core.util.JSONType>)
-    | undefined;
-  write?:
-    | ((input: ComputerFileWriteInput) => Promise<z.core.util.JSONType>)
-    | undefined;
   processStart(input: {
     command: string;
     cwd?: string | undefined;
@@ -62,6 +49,23 @@ export type ShedComputer = Readonly<{
   }): Promise<z.core.util.JSONType>;
   processes(input: Record<string, never>): Promise<z.core.util.JSONType>;
 }>;
+
+const bindingNotGranted = z.object({
+  code: z.literal("binding_not_granted"),
+});
+
+/** Only refusal-aware callers translate a host's typed binding denial. */
+export async function computerCall(
+  call: () => Promise<WhistleJsonValue>,
+): Promise<WhistleJsonValue> {
+  try {
+    return await call();
+  } catch (cause) {
+    if (!bindingNotGranted.safeParse(cause).success) throw cause;
+    return shedComputerRefusalSchema.parse({ error: "not_granted" });
+  }
+}
+
 const rowSchema = z.strictObject({
   requestKey: z.string(),
   computerId: z.string(),
@@ -73,29 +77,7 @@ const rowSchema = z.strictObject({
   exitCode: z.number().int().nullable(),
   logPath: z.string(),
   gitAccess: z.string().nullable(),
-  passId: z.string().nullable(),
-  remote: z.string().nullable(),
-  expiresAt: z.number().int().nullable(),
 });
-// A header-admitted pass reaches git only as command-local
-// http.<remote>.extraHeader config, read from a one-shot file the command
-// deletes; neither the command nor any repository config ever holds it.
-function gitCredentialFile(pass: GitCredential) {
-  return pass.bearer === undefined
-    ? `${pass.remote}\n`
-    : `${pass.remote}\n${pass.bearer}\n`;
-}
-function gitCredentialCommand(
-  remotePath: string,
-  pass: GitCredential,
-  command: string,
-) {
-  const read = `{ IFS= read -r _fungi_git_remote && IFS= read -r _fungi_git_bearer; } < ${quote(remotePath)}; rm -f -- ${quote(remotePath)}; test -n "$_fungi_git_remote"`;
-  return pass.bearer === undefined
-    ? `${read} && FUNGI_GIT_REMOTE="$_fungi_git_remote" bash -c ${quote(command)}`
-    : `${read} && test -n "$_fungi_git_bearer" && FUNGI_GIT_REMOTE="$_fungi_git_remote" GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="http.$_fungi_git_remote.extraHeader" GIT_CONFIG_VALUE_0="Authorization: Bearer $_fungi_git_bearer" bash -c ${quote(command)}`;
-}
-
 export const shedRunCommandInputSchema = runCommandInputSchema.extend({
   gitAccess: resolvedGitAccessSchema.optional(),
 });
@@ -103,9 +85,9 @@ export type ShedRunCommandInput = z.output<typeof shedRunCommandInputSchema>;
 export type ShedRunCommandResult = z.output<typeof runCommandResultSchema>;
 
 /**
- * One bounded exec that presents the step's Workflow Git pass exactly as
- * `run` does: `$FUNGI_GIT_REMOTE` plus command-local header config. Without
- * `gitAccess` it is the plain exec.
+ * One bounded exec. A Workflow step's admitted `gitAccess` is identity only:
+ * the trusted host supplies `$FUNGI_GIT_REMOTE` and its credentials after
+ * native admission, so Shed sends and holds none.
  */
 export async function runShedCommand(
   input: ShedRunCommandInput,
@@ -113,39 +95,31 @@ export async function runShedCommand(
     exec(
       input: Omit<ShedRunCommandInput, "gitAccess">,
     ): Promise<WhistleJsonValue>;
-    workflowGitPass?: ShedComputer["workflowGitPass"];
-    write?: ShedComputer["write"];
   }>,
-  now: () => number = Date.now,
 ): Promise<ShedRunCommandResult> {
-  const { gitAccess, ...exec } = input;
-  if (gitAccess === undefined)
-    return runCommandResultSchema.parse(await computer.exec(exec));
-  if (!computer.workflowGitPass || !computer.write)
-    return shedComputerRefusalSchema.parse({ error: "not_granted" });
-  const minted = z
-    .union([workflowGitPassResultSchema, shedComputerRefusalSchema])
-    .parse(await computer.workflowGitPass({}));
-  if ("error" in minted) return minted;
-  if (minted.expiresAt <= now() + 5000)
-    throw new Error("Workflow Git pass expires before the command starts");
-  const remotePath = `/workspace/.fungi-git-${Hex.encode(crypto.getRandomValues(new Uint8Array(16)))}.remote`;
-  const content = gitCredentialFile(minted);
-  const written = await computer.write({ path: remotePath, content });
-  const refused = shedComputerRefusalSchema.safeParse(written);
-  if (refused.success) return refused.data;
-  const reply = writeOutputSchema.parse(written);
-  if (
-    reply.path !== remotePath ||
-    reply.bytes !== new TextEncoder().encode(content).byteLength
-  )
-    throw new Error("Invalid Computer credential file reply");
-  return runCommandResultSchema.parse(
-    await computer.exec({
-      ...exec,
-      command: gitCredentialCommand(remotePath, minted, exec.command),
-    }),
-  );
+  const exec: Omit<ShedRunCommandInput, "gitAccess"> = {
+    command: input.command,
+    timeoutMs: input.timeoutMs,
+  };
+  if (input.cwd !== undefined) exec.cwd = input.cwd;
+  const reply = z
+    .union([computerOperationResultSchema, shedComputerRefusalSchema])
+    .parse(await computerCall(() => computer.exec(exec)));
+  if ("error" in reply)
+    return reply.error === "timeout" ? { error: reply.error } : reply;
+  if (reply.output === null) return { error: "output_unavailable" };
+  const { stdout, stderr, exitCode, truncated } = reply.output;
+  return runCommandResultSchema.parse({
+    stdout,
+    stderr,
+    exitCode,
+    stdoutTruncated:
+      truncated !== false &&
+      truncated.some((stream) => stream.stream === "stdout"),
+    stderrTruncated:
+      truncated !== false &&
+      truncated.some((stream) => stream.stream === "stderr"),
+  });
 }
 
 function claimKey(actor: HostActor, method: "start" | "run", key: string) {
@@ -166,16 +140,19 @@ function completion(exitCode: number | null, logPath: string) {
 }
 
 /** The Computer owns execution and exit state; Shed only remembers the call-to-process link. */
-export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
+export function createShedRuns(sql: ShedSql) {
   // Unscoped records are not current claims; do not read or import the old ledger.
+  // The superseded claim table held credential-lease columns. Preview data is
+  // disposable, so it is dropped, never read, copied or migrated.
+  sql.exec("DROP TABLE IF EXISTS shed_process_claims");
   sql.exec(
-    "CREATE TABLE IF NOT EXISTS shed_process_claims (requestKey TEXT PRIMARY KEY, computerId TEXT NOT NULL, command TEXT NOT NULL, cwd TEXT, processId TEXT, phase TEXT NOT NULL, startedAt INTEGER, exitCode INTEGER, logPath TEXT NOT NULL, gitAccess TEXT, passId TEXT, remote TEXT, expiresAt INTEGER)",
+    "CREATE TABLE IF NOT EXISTS shed_native_process_claims (requestKey TEXT PRIMARY KEY, computerId TEXT NOT NULL, command TEXT NOT NULL, cwd TEXT, processId TEXT, phase TEXT NOT NULL, startedAt INTEGER, exitCode INTEGER, logPath TEXT NOT NULL, gitAccess TEXT)",
   );
   sql.exec(
     "CREATE TABLE IF NOT EXISTS shed_retired_claim_keys (requestKey TEXT PRIMARY KEY)",
   );
   sql.exec(
-    "DELETE FROM shed_process_claims WHERE requestKey IN (SELECT requestKey FROM shed_retired_claim_keys)",
+    "DELETE FROM shed_native_process_claims WHERE requestKey IN (SELECT requestKey FROM shed_retired_claim_keys)",
   );
   const starting = new Map<string, number | null>();
   function retired(requestKey: string) {
@@ -198,7 +175,7 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
       .parse(
         sql
           .exec(
-            "SELECT * FROM shed_process_claims WHERE computerId=? AND json_extract(requestKey,'$[0]')=? AND json_extract(requestKey,'$[1]')=? ORDER BY startedAt ASC, processId ASC, rowid ASC",
+            "SELECT * FROM shed_native_process_claims WHERE computerId=? AND json_extract(requestKey,'$[0]')=? AND json_extract(requestKey,'$[1]')=? ORDER BY startedAt ASC, processId ASC, rowid ASC",
             computerId,
             JSON.stringify(actor),
             mode,
@@ -212,7 +189,10 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
       "INSERT OR IGNORE INTO shed_retired_claim_keys (requestKey) VALUES (?)",
       requestKey,
     );
-    sql.exec("DELETE FROM shed_process_claims WHERE requestKey=?", requestKey);
+    sql.exec(
+      "DELETE FROM shed_native_process_claims WHERE requestKey=?",
+      requestKey,
+    );
     // Replay refusal covers the latest 64 retired calls per member/method.
     // Older opaque keys are outside the retained replay horizon, like native history.
     sql.exec(
@@ -250,7 +230,7 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
   ) {
     const rows = scopeRows(actor, mode, computerId);
     if (rows.length < maximumProcessRecords) return null;
-    const reply = await computer.processes({});
+    const reply = await computerCall(() => computer.processes({}));
     const refused = shedComputerRefusalSchema.safeParse(reply);
     if (refused.success) return refused.data;
     const inventory = processListOutputSchema.parse(reply);
@@ -266,7 +246,10 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
   function read(requestKey: string) {
     if (retired(requestKey)) return null;
     const row = sql
-      .exec("SELECT * FROM shed_process_claims WHERE requestKey=?", requestKey)
+      .exec(
+        "SELECT * FROM shed_native_process_claims WHERE requestKey=?",
+        requestKey,
+      )
       .toArray()[0];
     return row === undefined ? null : rowSchema.parse(row);
   }
@@ -276,7 +259,7 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
     logPath: string,
   ) {
     sql.exec(
-      "UPDATE shed_process_claims SET processId=?,phase=?,exitCode=?,startedAt=? WHERE requestKey=?",
+      "UPDATE shed_native_process_claims SET processId=?,phase=?,exitCode=?,startedAt=? WHERE requestKey=?",
       process.id,
       process.state === "exited" ? "exited" : "running",
       process.exitCode,
@@ -326,15 +309,9 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
       new TextEncoder().encode(requestKey),
     );
     const directory = `/workspace/.fungi/runs/call-${Hex.encode(new Uint8Array(digest))}`;
-    const remotePath = `/workspace/.fungi-git-${Hex.encode(new Uint8Array(digest))}.remote`;
-    const credentialFile = gitCredentialFile;
-    function prepare(pass: GitCredential | null) {
+    function prepare() {
       const logPath = `${directory}/out.log`;
-      const command =
-        pass === null
-          ? `bash -c ${quote(input.command)}`
-          : gitCredentialCommand(remotePath, pass, input.command);
-      const script = `mkdir -p ${quote(directory)} && ${command} 2>&1 | tee ${quote(logPath)}`;
+      const script = `mkdir -p ${quote(directory)} && bash -c ${quote(input.command)} 2>&1 | tee ${quote(logPath)}`;
       const processInput: z.input<typeof processInputSchema> = {
         command: `bash -o pipefail -c ${quote(script)}`,
       };
@@ -345,48 +322,14 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
     async function dispatch(
       start: z.output<typeof processInputSchema>,
       logPath: string,
-      pass: GitCredential | null,
-      expiresAt: number | null,
     ) {
-      const remote = pass?.remote ?? null;
       starting.set(requestKey, input.port ?? null);
       try {
-        function checkLease() {
-          if (remote !== null && (expiresAt === null || expiresAt <= now()))
-            throw new Error(
-              `Workflow Git pass expired before process dispatch. Log: ${logPath}`,
-            );
-        }
-        checkLease();
-        if (pass !== null) {
-          if (!computer.write)
-            throw new Error("Computer credential file access is unavailable");
-          const content = credentialFile(pass);
-          const reply = await computer.write({
-            path: remotePath,
-            content,
-          });
-          const refused = shedComputerRefusalSchema.safeParse(reply);
-          if (refused.success) {
-            sql.exec(
-              "DELETE FROM shed_process_claims WHERE requestKey=?",
-              requestKey,
-            );
-            return refused.data;
-          }
-          const written = writeOutputSchema.parse(reply);
-          if (
-            written.path !== remotePath ||
-            written.bytes !== new TextEncoder().encode(content).byteLength
-          )
-            throw new Error("Invalid Computer credential file reply");
-        }
-        checkLease();
-        const reply = await computer.processStart(start);
+        const reply = await computerCall(() => computer.processStart(start));
         const refused = shedComputerRefusalSchema.safeParse(reply);
         if (refused.success) {
           sql.exec(
-            "DELETE FROM shed_process_claims WHERE requestKey=?",
+            "DELETE FROM shed_native_process_claims WHERE requestKey=?",
             requestKey,
           );
           return refused.data;
@@ -402,16 +345,6 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
     }
     const gitAccess =
       input.gitAccess === undefined ? null : JSON.stringify(input.gitAccess);
-    async function mint() {
-      if (!computer.workflowGitPass)
-        throw new Error("Workflow Git pass binding is unavailable");
-      const pass = workflowGitPassResultSchema.parse(
-        await computer.workflowGitPass({}),
-      );
-      if (pass.expiresAt <= now() + 5000)
-        throw new Error("Workflow Git pass expires before the next poll");
-      return pass;
-    }
     async function resume(prior: z.output<typeof rowSchema>) {
       verify(prior, input, computerId);
       if (prior.phase === "starting") {
@@ -426,25 +359,8 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
         }
         // The host binding retains this call's native idempotency key across retries.
         if (mode === "start") {
-          // Renew the same selector rather than storing a header credential.
-          let pass: GitCredential | null = null;
-          if (prior.remote !== null) {
-            if (prior.expiresAt === null || prior.expiresAt <= now())
-              throw new Error(
-                `Workflow Git pass expired before process dispatch. Log: ${prior.logPath}`,
-              );
-            const renewed = await mint();
-            if (
-              renewed.passId !== prior.passId ||
-              renewed.remote !== prior.remote
-            )
-              throw new Error(
-                `Workflow Git renewal changed its original selector. Log: ${prior.logPath}`,
-              );
-            pass = renewed;
-          }
-          const prepared = prepare(pass);
-          return dispatch(prepared.start, prior.logPath, pass, prior.expiresAt);
+          const prepared = prepare();
+          return dispatch(prepared.start, prior.logPath);
         }
         throw new Error(
           `Process start outcome is unavailable. Log: ${prior.logPath}`,
@@ -463,48 +379,21 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
           "conflict",
           "Run identity conflicts with its declared port",
         );
-      if (mode === "run" && process.state !== "exited" && gitAccess !== null) {
-        if (prior.expiresAt === null || prior.expiresAt <= now())
-          throw new Error(`Workflow Git pass expired. Log: ${prior.logPath}`);
-        const pass = await mint();
-        if (
-          prior.expiresAt <= now() ||
-          pass.passId !== prior.passId ||
-          pass.remote !== prior.remote ||
-          pass.expiresAt < prior.expiresAt
-        )
-          throw new Error(
-            `Workflow Git renewal changed or expired its original selector. Log: ${prior.logPath}`,
-          );
-        sql.exec(
-          "UPDATE shed_process_claims SET expiresAt=MAX(expiresAt,?) WHERE requestKey=?",
-          pass.expiresAt,
-          requestKey,
-        );
-      }
       return observe(requestKey, process, prior.logPath);
     }
     const prior = read(requestKey);
     if (prior) return resume(prior);
-    // Mint can yield; recheck the durable claim before starting a process.
-    const pass: WorkflowGitPassResult | null =
-      gitAccess === null ? null : await mint();
-    const claimed = read(requestKey);
-    if (claimed) return resume(claimed);
-    const { start, logPath } = prepare(pass);
+    const { start, logPath } = prepare();
     sql.exec(
-      "INSERT INTO shed_process_claims (requestKey,computerId,command,cwd,phase,logPath,gitAccess,passId,remote,expiresAt) VALUES (?,?,?,?,'starting',?,?,?,?,?)",
+      "INSERT INTO shed_native_process_claims (requestKey,computerId,command,cwd,phase,logPath,gitAccess) VALUES (?,?,?,?,'starting',?,?)",
       requestKey,
       computerId,
       input.command,
       input.cwd ?? null,
       logPath,
       gitAccess,
-      pass?.passId ?? null,
-      pass?.remote ?? null,
-      pass?.expiresAt ?? null,
     );
-    return dispatch(start, logPath, pass, pass?.expiresAt ?? null);
+    return dispatch(start, logPath);
   }
   return {
     owns(processId: string, computerId: string, actor: HostActor) {
@@ -512,7 +401,7 @@ export function createShedRuns(sql: ShedSql, now: () => number = Date.now) {
       return (
         sql
           .exec(
-            "SELECT requestKey FROM shed_process_claims WHERE processId=? AND computerId=? AND json_extract(requestKey,'$[0]')=?",
+            "SELECT requestKey FROM shed_native_process_claims WHERE processId=? AND computerId=? AND json_extract(requestKey,'$[0]')=?",
             processId,
             computerId,
             JSON.stringify(actor),

@@ -1,5 +1,59 @@
 # @fungi.computer/shed
 
+## 0.2.0
+
+### Minor Changes
+
+- Changes since 0.1.0:
+
+  - fix(oyster): keep Stage out of the starter release
+  - fix(shed): compact the model-facing command reply
+  - fix(shed): drop the superseded claim table; keep bearer secrets out of files
+  - test(shed): assert runs never mint, write or renew credentials
+  - test(shed): prohibit credential files before refused workflow starts
+  - fix(shed): build the plain runCommand exec without a throwaway binding
+  - refactor(shed): drop the unused computer.writeFile capability
+  - refactor(shed): send Workflow Git commands without any credential
+  - fix(shed): preserve typed missing binding grants as refusals
+  - feat(maosaico)!: replace tiling axis with named layouts
+  - feat(oyster): derive App build recipes from package metadata
+  - fix(packages): align split-package test consumers
+  - refactor(computer)!: move the operation contract into computer-contract
+  - test(shed): run the shell router test in Node
+  - fix(shed): route only present arithmetic children
+  - fix(shed): read the router's first nodes with at(0)
+  - refactor(shed): own the light-shell command router
+  - feat(oyster): add stage to the starter apps
+  - fix(exec): say when command output is cut at the stream cap
+  - feat(oyster): public release 0.2.0
+  - fix(shed): keep the replay handle stable across ready callbacks
+  - feat(shed): expose optional terminal replay and paint handle
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.3.0
+  - @fungi.computer/braid@0.2.0
+  - @fungi.computer/cairn@0.1.0
+  - @fungi.computer/caps@0.2.0
+  - @fungi.computer/computer-contract@0.0.1
+  - @fungi.computer/gills@0.2.0
+  - @fungi.computer/lantern@0.3.0
+  - @fungi.computer/maosaico@0.1.0
+  - @fungi.computer/sigils@0.2.0
+  - @fungi.computer/stipe@0.1.0
+  - @fungi.computer/whistle@0.1.0
+
 ## 0.1.0
 
 ### Minor Changes

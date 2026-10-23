@@ -1,11 +1,11 @@
 import { AppError, type CapabilityDirectory } from "@fungi.computer/agar";
 import { appMethods } from "@fungi.computer/agar/backend";
-import { bareNavigationCommand } from "@fungi.computer/computer/light-shell";
+import { bareNavigationCommand } from "./shell-route.js";
 import {
   runCommandInputSchema,
   runCommandResultSchema,
 } from "./run-command-contract.js";
-import { maximumCommandCharacters } from "@fungi.computer/computer/operations";
+import { maximumCommandCharacters } from "@fungi.computer/computer-contract";
 
 export type LightRunInput = Readonly<{
   command: string;
@@ -71,20 +71,20 @@ export async function runLightCommand(
     .call("runCommand", JSON.stringify(request));
   signal.throwIfAborted();
   const result = runCommandResultSchema.parse(raw);
+  if ("error" in result && result.error === "output_unavailable")
+    throw new AppError("The command produced no result", {
+      code: "DISCONNECTED",
+      retryable: true,
+    });
   if ("error" in result)
     throw new AppError(`The Computer declined this command: ${result.error}`, {
       code: "CAPABILITY_DENIED",
       retryable: result.error === "unavailable",
     });
-  if (result.output === null)
-    throw new AppError("The command produced no result", {
-      code: "DISCONNECTED",
-      retryable: true,
-    });
   return {
-    stdout: result.output.stdout,
-    stderr: result.output.stderr,
-    exitCode: result.output.exitCode,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    exitCode: result.exitCode,
     cwd: input.cwd,
     env: input.env,
   };

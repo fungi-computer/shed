@@ -422,7 +422,7 @@ export function ShedWorkspaceView({
         <MaosaicoRoot
           bounds={bounds}
           tiling={{
-            axis: "y",
+            layout: "main-top",
             mainSize: bounds.width >= 540 ? bounds.height * 0.5 : bounds.height,
             gap: 8,
           }}

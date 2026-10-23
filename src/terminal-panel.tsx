@@ -59,23 +59,36 @@ type LightInput = Readonly<{
   reopen: () => void;
 }>;
 
+/** Replay access without ownership of the terminal or its production session. */
+export type TerminalFilmHandle = Pick<
+  Terminal,
+  "write" | "reset" | "resize"
+> & {
+  /** Resolve after current cells have been drawn to the canvas, ready for capture. */
+  readonly paint: () => Promise<void>;
+};
+
 export function TerminalPanel({
   app,
   computerId,
   screen,
   light,
   onStatusChange,
+  onTerminalReady,
 }: {
   app: Pick<AppRoot, "capabilities">;
   computerId: string;
   screen?: ReactNode;
   light?: LightShellPort;
   onStatusChange?: (status: TerminalStatus) => void;
+  /** Optional film/replay access; omitted in production. Valid until unmount. */
+  onTerminalReady?: (handle: TerminalFilmHandle) => void;
 }) {
   const paneRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  const filmHandleRef = useRef<TerminalFilmHandle | null>(null);
   const outputHistory = useRef<Uint8Array[]>([]);
   const outputHistoryBytes = useRef(0);
   const writerRef = useRef<WritableStreamDefaultWriter<Uint8Array> | null>(
@@ -91,6 +104,43 @@ export function TerminalPanel({
   useEffect(() => {
     onStatusChange?.({ name: computerName, state, information });
   }, [computerName, state, information, onStatusChange]);
+  useEffect(() => {
+    if (!terminalReady || !onTerminalReady) return;
+    // Resolve the current terminal on every operation: theme/width changes
+    // replace Ghostty while this panel and the caller's handle stay mounted.
+    const current = () => {
+      const terminal = terminalRef.current;
+      if (!terminal) throw new Error("Shed terminal is no longer mounted");
+      return terminal;
+    };
+    filmHandleRef.current ??= {
+      write: (bytes, callback) => {
+        current().write(bytes, callback);
+      },
+      reset: () => {
+        const terminal = current();
+        terminal.reset();
+        // Ghostty can reuse WASM storage; a seek must also clear stale cells.
+        terminal.write("\x1b[2J\x1b[3J\x1b[H");
+      },
+      resize: (cols, rows) => {
+        current().resize(cols, rows);
+      },
+      paint: () =>
+        Promise.resolve().then(() => {
+          const terminal = current();
+          const { renderer, wasmTerm } = terminal;
+          if (!renderer || !wasmTerm)
+            throw new Error("Shed terminal renderer is unavailable");
+          // Ghostty 0.4 writes synchronously but only schedules its write callback.
+          // Its declared onRender event is never emitted. Use the public renderer
+          // to finish drawing now rather than guessing how many RAFs to wait.
+          renderer.render(wasmTerm, true, terminal.getViewportY(), terminal);
+        }),
+    };
+    onTerminalReady(filmHandleRef.current);
+  }, [terminalReady, onTerminalReady]);
+
   const lightRef = useRef(light);
   lightRef.current = light;
   const lightInputRef = useRef<LightInput | null>(null);

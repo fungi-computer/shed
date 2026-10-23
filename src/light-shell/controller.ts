@@ -1,4 +1,4 @@
-import type { ShellRoute } from "@fungi.computer/computer/light-shell";
+import type { ShellRoute } from "./shell-route.js";
 import { reportCatchFailure } from "../failure.js";
 import type { LightRunInput, LightRunResult } from "./connector.js";
 import {

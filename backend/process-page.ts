@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { processListOutputSchema } from "@fungi.computer/computer/operations";
+import { processListOutputSchema } from "@fungi.computer/computer-contract";
 
 const process = processListOutputSchema.shape.processes.element;
 const processCursorSchema = z.strictObject({

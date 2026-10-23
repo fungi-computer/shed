@@ -2,8 +2,8 @@ import {
   completeShellCommand,
   prepareShellPrompt,
   type ShellRoute,
-} from "@fungi.computer/computer/light-shell";
-import { maximumCommandCharacters } from "@fungi.computer/computer/operations";
+} from "./shell-route.js";
+import { maximumCommandCharacters } from "@fungi.computer/computer-contract";
 import stringWidth from "string-width";
 import stripAnsi from "strip-ansi";
 import type { LightRunInput, LightRunResult } from "./connector.js";

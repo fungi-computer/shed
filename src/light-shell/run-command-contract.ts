@@ -5,33 +5,36 @@ import {
   execOutputSchema,
   maximumStreamBytes,
   pathSchema,
-} from "@fungi.computer/computer/operations";
+} from "@fungi.computer/computer-contract";
 
 /** Backend-mediated refusal of a Computer operation. Shared by every Shed App
  * method that can be declined instead of run. */
+const computerRefusalSchema = z.strictObject({
+  error: z.enum([
+    "not_granted",
+    "revoked",
+    "grantor_lost_authority",
+    "unavailable",
+    "invalid",
+    "invalid_path",
+    "too_large",
+    "conflict",
+    "not_found",
+  ]),
+});
+const budgetRefusalSchema = z.strictObject({
+  error: z.literal("attachment_budget_exceeded"),
+  kind: z.enum(["exec", "write"]),
+  retryAfterMs: z.number().int().min(1).max(86400000),
+});
+const timeoutRefusalSchema = z.strictObject({
+  error: z.literal("timeout"),
+  requestId: computerOperationResultSchema.shape.requestId,
+});
 export const shedComputerRefusalSchema = z.union([
-  z.strictObject({
-    error: z.enum([
-      "not_granted",
-      "revoked",
-      "grantor_lost_authority",
-      "unavailable",
-      "invalid",
-      "invalid_path",
-      "too_large",
-      "conflict",
-      "not_found",
-    ]),
-  }),
-  z.strictObject({
-    error: z.literal("attachment_budget_exceeded"),
-    kind: z.enum(["exec", "write"]),
-    retryAfterMs: z.number().int().min(1).max(86400000),
-  }),
-  z.strictObject({
-    error: z.literal("timeout"),
-    requestId: computerOperationResultSchema.shape.requestId,
-  }),
+  computerRefusalSchema,
+  budgetRefusalSchema,
+  timeoutRefusalSchema,
 ]);
 
 const workspacePath = pathSchema.refine(
@@ -55,9 +58,12 @@ export const runCommandInputSchema = computerExecutionRequestSchema({
 // adding at most two encoded bytes to each native bounded stream.
 const maximumDecodedStreamBytes = maximumStreamBytes + 2;
 const runCommandOutputSchema = execOutputSchema
+  .pick({ stdout: true, stderr: true, exitCode: true })
   .extend({
     stdout: z.string().max(maximumDecodedStreamBytes),
     stderr: z.string().max(maximumDecodedStreamBytes),
+    stdoutTruncated: z.boolean(),
+    stderrTruncated: z.boolean(),
   })
   .refine(
     (value) =>
@@ -69,8 +75,11 @@ const runCommandOutputSchema = execOutputSchema
   );
 
 export const runCommandResultSchema = z.union([
-  computerOperationResultSchema.extend({
-    output: runCommandOutputSchema.nullable(),
+  runCommandOutputSchema,
+  computerRefusalSchema,
+  budgetRefusalSchema,
+  timeoutRefusalSchema.pick({ error: true }),
+  z.strictObject({
+    error: z.literal("output_unavailable"),
   }),
-  shedComputerRefusalSchema,
 ]);
