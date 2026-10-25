@@ -1,6 +1,6 @@
 {
   "name": "@fungi.computer/shed",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p backend/tsconfig.json --noEmit",
@@ -25,9 +25,9 @@
     "@tanstack/react-query": "5.102.8",
     "effect": "4.0.2",
     "zod": "4.4.3",
-    "@fungi.computer/braid": "0.2.0",
+    "@fungi.computer/braid": "0.2.1",
     "@fungi.computer/gills": "0.2.0",
-    "@fungi.computer/computer-contract": "0.0.1"
+    "@fungi.computer/computer-contract": "0.0.2"
   },
   "devDependencies": {
     "@ladle/react": "5.1.1",
