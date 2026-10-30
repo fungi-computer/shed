@@ -32,3 +32,4 @@ allowBuilds:
   workerd: true
 patchedDependencies:
   ghostty-web@0.4.0: patches/ghostty-web@0.4.0.patch
+  just-bash@3.4.2: patches/just-bash@3.4.2.patch

@@ -1,6 +1,6 @@
 {
   "name": "@fungi.computer/shed",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p backend/tsconfig.json --noEmit",
@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "@fungi.computer/cairn": "0.1.0",
-    "@fungi.computer/agar": "0.5.0",
-    "@fungi.computer/caps": "0.4.0",
+    "@fungi.computer/agar": "0.6.0",
+    "@fungi.computer/caps": "0.5.0",
     "@fungi.computer/lantern": "0.3.1",
     "@fungi.computer/maosaico": "0.1.0",
     "@fungi.computer/sigils": "0.2.0",
@@ -25,9 +25,9 @@
     "@tanstack/react-query": "5.102.8",
     "effect": "4.0.2",
     "zod": "4.4.3",
-    "@fungi.computer/braid": "0.2.4",
+    "@fungi.computer/braid": "0.3.0",
     "@fungi.computer/gills": "0.2.0",
-    "@fungi.computer/computer-contract": "0.0.5"
+    "@fungi.computer/computer-contract": "0.0.6"
   },
   "devDependencies": {
     "@ladle/react": "5.1.1",
@@ -42,7 +42,7 @@
     "vitest": "4.1.11",
     "playwright": "1.62.1",
     "@cloudflare/workers-types": "5.20260828.1",
-    "@fungi.computer/puffball": "0.2.0",
+    "@fungi.computer/puffball": "0.3.0",
     "esbuild": "0.28.2",
     "eslint": "10.9.1",
     "tsx": "4.23.12",

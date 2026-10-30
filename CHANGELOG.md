@@ -1,5 +1,24 @@
 # @fungi.computer/shed
 
+## 0.3.0
+
+### Minor Changes
+
+- Changes since 0.2.4:
+
+  - feat(repository): scope docs-only gates
+  - fix(shed): keep Node codecs out of the browser graph
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.6.0
+  - @fungi.computer/braid@0.3.0
+  - @fungi.computer/caps@0.5.0
+  - @fungi.computer/computer-contract@0.0.6
+
 ## 0.2.4
 
 ### Patch Changes
