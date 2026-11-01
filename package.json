@@ -1,6 +1,6 @@
 {
   "name": "@fungi.computer/shed",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p backend/tsconfig.json --noEmit",
@@ -12,7 +12,7 @@
     "@fungi.computer/caps": "0.6.0",
     "@fungi.computer/lantern": "0.3.1",
     "@fungi.computer/maosaico": "0.1.0",
-    "@fungi.computer/sigils": "0.2.1",
+    "@fungi.computer/sigils": "0.2.2",
     "@fungi.computer/stipe": "0.1.0",
     "@fungi.computer/whistle": "0.3.0",
     "ghostty-web": "0.4.0",
