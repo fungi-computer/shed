@@ -1,5 +1,18 @@
 # @fungi.computer/shed
 
+## 0.4.0
+
+### Minor Changes
+
+- Changes since 0.3.5:
+
+  - feat(front-doors): lead with the local try-it path and an install-now button
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/lantern@0.4.0
+
 ## 0.3.5
 
 ### Patch Changes
