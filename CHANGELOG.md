@@ -1,5 +1,15 @@
 # @fungi.computer/shed
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/lantern@0.4.1
+  - @fungi.computer/maosaico@0.1.1
+  - @fungi.computer/caps@0.7.1
+
 ## 0.4.0
 
 ### Minor Changes
