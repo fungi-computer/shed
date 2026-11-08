@@ -1,5 +1,26 @@
 # @fungi.computer/shed
 
+## 0.5.0
+
+### Minor Changes
+
+- Changes since 0.4.4:
+
+  - feat(computer): retain process output and serve the last lines
+  - feat(agar): first-run setup facts, openSetup, more permission families
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.9.0
+  - @fungi.computer/caps@0.9.0
+  - @fungi.computer/computer-contract@0.1.0
+  - @fungi.computer/gills@0.3.0
+  - @fungi.computer/braid@0.4.7
+
 ## 0.4.4
 
 ### Patch Changes

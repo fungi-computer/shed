@@ -20,6 +20,7 @@ const previewUi: AppRoot["ui"] = {
   requestBrowserAction: () => {
     throw new Error("Unexpected browser action");
   },
+  openSetup: () => Promise.resolve("unavailable"),
   openDesktopSettings: () => Promise.resolve(),
   reportAgentSessionSelection: () => Promise.resolve(),
   showToast: () => Promise.resolve(),
