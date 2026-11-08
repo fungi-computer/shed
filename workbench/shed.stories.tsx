@@ -131,7 +131,7 @@ function Workbench({
             processes: {
               items: live ? processes : null,
               loading: false,
-              error: false,
+              error: null,
               stop: live
                 ? (id) => {
                     setProcesses((current) =>

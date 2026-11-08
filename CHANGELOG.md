@@ -1,5 +1,29 @@
 # @fungi.computer/shed
 
+## 0.4.4
+
+### Patch Changes
+
+- Changes since 0.4.3:
+
+  - fix(shed): say why commands can't run, with the fix
+  - fix(shed): register the backend export as a surface source
+  - fix(shed): say 'model' and hint the Stop hold
+  - fix(shed): lead the Processes tray with its teaching state
+  - fix(shed): welcome the terminal with plain facts, no ASCII art
+  - fix(shed): teach the empty Processes tray and show exit results
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.8.0
+  - @fungi.computer/caps@0.8.0
+  - @fungi.computer/stipe@0.1.1
+  - @fungi.computer/braid@0.4.6
+  - @fungi.computer/maosaico@0.1.1
+  - @fungi.computer/sigils@0.3.0
+  - @fungi.computer/computer-contract@0.0.13
+
 ## 0.4.3
 
 ### Patch Changes

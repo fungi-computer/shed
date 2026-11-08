@@ -1,5 +1,4 @@
 import type { ComputerTerminalInformation } from "@fungi.computer/agar/computer";
-import { renderBanner } from "@fungi.computer/lantern/banner";
 
 /** Host labels are plain text; they cannot change terminal state. */
 function display(value: string): string {
@@ -21,35 +20,26 @@ function pack(parts: readonly string[], cols: number): string {
   return rows.join("\n");
 }
 
-/** Current host facts; configured Teams retain the shared Computer banner. */
+/** Current host facts as plain text; the host adds no art or colour. */
 export function renderWelcome({
   cols,
   information,
-  tty = true,
-  noColor = false,
   light = false,
 }: {
   cols: number;
   information: ComputerTerminalInformation;
-  tty?: boolean;
-  noColor?: boolean;
-  /** The light prompt follows the banner, so the hint names it. */
+  /** The light prompt follows the welcome, so the hint names it. */
   light?: boolean;
 }): string {
   const hasTeam = information.teamName !== "unconfigured";
-  const banner = hasTeam
-    ? renderBanner({
-        brand: "computer",
-        columns: cols,
-        interactive: tty,
-        noColor,
-        rawPty: true,
-      })
-    : "";
   const facts = [display(information.computerName)];
   if (hasTeam) facts.push(`Team ${display(information.teamName)}`);
-  if (information.modelDoor !== "unconfigured")
-    facts.push(`model door: ${display(information.modelDoor)}`);
+  // A door named like the Computer repeats it, so only a different name shows.
+  if (
+    information.modelDoor !== "unconfigured" &&
+    information.modelDoor !== information.computerName
+  )
+    facts.push(`model: ${display(information.modelDoor)}`);
   facts.push(`up ${String(Math.floor(information.uptimeSeconds / 60))}m`);
   if (information.version !== "0.0.0")
     facts.push(
@@ -65,7 +55,7 @@ export function renderWelcome({
         cols,
       )
     : "try: ls · pwd · node -v · exit";
-  return `${banner}${status}\n${hint}\n\n`.replace(/\r?\n/g, "\r\n");
+  return `${status}\n${hint}\n\n`.replace(/\r?\n/g, "\r\n");
 }
 
 /** This is client display output, never a command sent to the Computer. */

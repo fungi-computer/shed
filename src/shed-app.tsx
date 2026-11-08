@@ -9,6 +9,7 @@ import type { WhistleCommand } from "@fungi.computer/whistle";
 import {
   computerTerminal,
   computerProcessSchema,
+  describeComputerRefusal,
 } from "@fungi.computer/agar/computer";
 import { Option, Schema } from "effect";
 import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
@@ -120,6 +121,22 @@ function ShedWorkspace({
       />
     );
 
+  const processRefusal =
+    canListProcesses && processQuery.isError
+      ? describeComputerRefusal(processQuery.error)
+      : null;
+  const processFix =
+    processRefusal?.action === "retry"
+      ? refreshProcesses
+      : processRefusal?.action === "grant" && app
+        ? () =>
+            void app.ui
+              .requestAppPermissions({ computers: ["computer.execute"] })
+              .catch((cause: unknown) => {
+                console.error("Shed Computer operation failed", cause);
+              })
+        : undefined;
+
   return (
     <ShedDataContext.Provider
       value={{
@@ -140,7 +157,8 @@ function ShedWorkspace({
             ? (processQuery.data?.processes ?? null)
             : null,
           loading: canListProcesses && processQuery.isFetching,
-          error: canListProcesses && processQuery.isError,
+          error: processRefusal,
+          fix: processFix,
           actions: processActions,
           refresh: canListProcesses ? refreshProcesses : undefined,
           start: canListProcesses ? startCommand : undefined,
@@ -303,17 +321,18 @@ export function ShedWorkspaceView({
     setOpenTray(null);
   };
   const processesAvailable =
-    processes !== null || processLoading || processError;
+    processes !== null || processLoading || processError !== null;
   const accessTray = useComputerAccessTray({
     app,
     terminal: terminalNow,
-    processes: processError
-      ? { kind: "error" }
-      : processes !== null
-        ? { kind: "loaded", count: processes.length }
-        : processLoading
-          ? { kind: "loading" }
-          : { kind: "unavailable" },
+    processes:
+      processError !== null
+        ? { kind: "error" }
+        : processes !== null
+          ? { kind: "loaded", count: processes.length }
+          : processLoading
+            ? { kind: "loading" }
+            : { kind: "unavailable" },
     ports:
       portStatus === "error"
         ? { kind: "error" }

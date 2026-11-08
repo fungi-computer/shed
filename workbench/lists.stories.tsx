@@ -104,7 +104,7 @@ export function PortsAndProcesses() {
             processes: {
               items: processes,
               loading: false,
-              error: false,
+              error: null,
               stop: (id) => {
                 setProcesses((current) =>
                   current.filter((item) => item.id !== id),

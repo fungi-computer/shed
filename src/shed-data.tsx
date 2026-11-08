@@ -1,5 +1,6 @@
 import type {
   ComputerProcess,
+  ComputerRefusal,
   ComputerPorts,
 } from "@fungi.computer/agar/computer";
 import { createContext, useContext } from "react";
@@ -20,7 +21,10 @@ export type ShedData = {
   processes: {
     items: readonly ComputerProcess[] | null;
     loading: boolean;
-    error: boolean;
+    /** Why the inventory cannot be read, in plain words, or null when it can. */
+    error: ComputerRefusal | null;
+    /** The one action that fixes `error`, when this window can offer it. */
+    fix?: () => void | Promise<void>;
     actions?: ReadonlyMap<string, ProcessAction>;
     refresh?: () => void | Promise<void>;
     stop?: (id: string) => void | Promise<void>;

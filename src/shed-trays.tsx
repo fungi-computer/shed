@@ -18,6 +18,9 @@ import {
 import { Schema } from "effect";
 import { UndoAction } from "@fungi.computer/caps/components/undo-action";
 import { HoldButton } from "@fungi.computer/caps/components/hold-button";
+import { InlineCode } from "@fungi.computer/caps/components/inline-code";
+import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
+import { Alert } from "@fungi.computer/caps/components/alert";
 import { Button } from "@fungi.computer/caps/components/button";
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import {
@@ -83,6 +86,12 @@ const processFields = Schema.Struct({
   ),
 });
 
+/** One-click starters that fill the Start form; they run nothing themselves. */
+const processStarters = [
+  { command: "npm run dev", port: 3000 },
+  { command: "python3 -m http.server 8000", port: 8000 },
+] as const;
+
 export type ShedTraysProps = {
   openPreview: (port: ShedPreviewPort) => void;
   openId: string | null;
@@ -123,6 +132,7 @@ export function ShedTrays({
       items: processes,
       loading: processLoading,
       error: processError,
+      fix: processFix,
       actions: processActions,
       refresh: onRefreshProcesses,
       stop: onStopProcess,
@@ -130,6 +140,12 @@ export function ShedTrays({
     },
   } = useShedData();
   const processList = useRef<HTMLDivElement>(null);
+  // A press shorter than the hold teaches the gesture inline, beside the row.
+  const pressedAt = useRef(0);
+  const [holdHintFor, setHoldHintFor] = useState<string | null>(null);
+  const noteRelease = (id: string) => {
+    if (Date.now() - pressedAt.current < 900) setHoldHintFor(id);
+  };
   const focusedRequest = useRef<string | null>(null);
   useEffect(() => {
     if (
@@ -198,7 +214,7 @@ export function ShedTrays({
     if (action.expose && !portRows.has(port)) portRows.set(port, null);
   }
   const processesAvailable =
-    processes !== null || processLoading || processError;
+    processes !== null || processLoading || processError !== null;
   const portContent = (() => {
     if (portStatus === "not-configured") {
       return (
@@ -394,126 +410,218 @@ export function ShedTrays({
           Checking this Computer's process inventory.
         </StatusTrayNote>
       );
-    if (processError && processes === null)
+    if (processError !== null && processes === null)
       return (
-        <StatusTrayNote title="Couldn't load processes">
-          Check the Computer connection, then refresh to try again.
-        </StatusTrayNote>
+        <div className="px-2 pb-3">
+          <Alert
+            tone={processError.reason === "failed" ? "error" : "warning"}
+            role="status"
+            title="Can't run commands"
+            description={processError.message}
+            action={
+              processFix === undefined ? undefined : (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={() => void processFix()}
+                >
+                  {processError.action === "grant"
+                    ? "Allow access"
+                    : "Try again"}
+                </Button>
+              )
+            }
+          />
+        </div>
       );
     if (processes === null || processes.length === 0)
       return (
-        <StatusTrayNote title="No processes">
-          This Computer reports no retained processes.
-        </StatusTrayNote>
+        <div className="px-2 pb-3">
+          <EmptyState
+            variant="quiet"
+            headingLevel={3}
+            title="Nothing running"
+            description={
+              <>
+                Start a dev server, for example{" "}
+                <InlineCode>npm run dev</InlineCode>.
+              </>
+            }
+            actions={
+              <ul
+                aria-label="Try one of these"
+                className="m-0 flex list-none flex-wrap gap-2 p-0"
+              >
+                {processStarters.map((starter) => (
+                  <li key={starter.command}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        startForm.form.setFieldValue(
+                          "command",
+                          starter.command,
+                        );
+                        startForm.form.setFieldValue("port", starter.port);
+                        document
+                          .querySelector<HTMLElement>(
+                            '[aria-label="Start a process"] button[type="submit"]',
+                          )
+                          ?.focus();
+                      }}
+                    >
+                      <InlineCode>{starter.command}</InlineCode>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            }
+          />
+        </div>
       );
     return (
       <>
-        <AnimatedTrayList
-          label="Computer process inventory"
-          order={processes.map(({ id }) => id)}
-          listRoot={processList}
-        >
-          {processes.map((process) => {
-            const action = processActions?.get(process.id);
-            const preview =
-              process.state === "running"
-                ? ports?.find((item) => item.port === process.port)
-                : undefined;
-            let tone: StatusTone = "neutral";
-            if (process.state === "running") tone = "success";
-            else if (process.state === "uncertain") tone = "warning";
-            // Files a command wrote may still be mid-flight to the Workspace;
-            // say so calmly next to the exit, not as an error on the exit.
-            const filesNotSyncedYet =
-              process.state === "exited" && process.sync === "pending";
-            return (
-              <StatusTrayRow
-                key={process.id}
-                {...{ [reorderKeyAttribute]: process.id }}
-                role="listitem"
-                data-process-state={process.state}
-                data-process-sync={process.sync}
-                tabIndex={-1}
-                primary={
-                  <>
-                    <span className="block truncate" data-process-command>
-                      {process.command}
-                    </span>
-                    <span className="flex items-center gap-2 text-xs font-normal">
-                      <Status
-                        size="compact"
-                        tone={tone}
-                        label={
-                          action === "stopping" ? "stopping" : process.state
-                        }
-                      />
-                      {filesNotSyncedYet ? (
+        <div className="px-1">
+          <AnimatedTrayList
+            label="Computer process inventory"
+            order={processes.map(({ id }) => id)}
+            listRoot={processList}
+          >
+            {processes.map((process) => {
+              const action = processActions?.get(process.id);
+              const preview =
+                process.state === "running"
+                  ? ports?.find((item) => item.port === process.port)
+                  : undefined;
+              const failed =
+                process.state === "exited" &&
+                process.exitCode !== null &&
+                process.exitCode !== 0;
+              let tone: StatusTone = "neutral";
+              let outcome = "Finished";
+              if (process.state === "running") {
+                tone = "success";
+                outcome = "Running";
+              } else if (process.state === "uncertain") {
+                tone = "warning";
+                outcome = "Status unknown";
+              } else if (failed) {
+                tone = "error";
+                outcome = `Failed · exit ${String(process.exitCode)}`;
+              }
+
+              // Files a command wrote may still be mid-flight to the Workspace;
+              // say so calmly beneath the outcome, never as an error on it.
+              const filesNotSyncedYet =
+                process.state === "exited" && process.sync === "pending";
+              return (
+                <StatusTrayRow
+                  key={process.id}
+                  {...{ [reorderKeyAttribute]: process.id }}
+                  role="listitem"
+                  data-process-state={process.state}
+                  data-process-sync={process.sync}
+                  className="py-2"
+                  tabIndex={-1}
+                  primary={
+                    <>
+                      <InlineCode
+                        className="block truncate"
+                        data-process-command
+                      >
+                        {process.command}
+                      </InlineCode>
+                      <span className="flex items-center gap-2 text-xs font-normal">
                         <Status
                           size="compact"
-                          tone="warning"
-                          glyph="dot"
-                          label="Files not synced yet"
+                          tone={tone}
+                          label={action === "stopping" ? "Stopping" : outcome}
                         />
-                      ) : null}
-                      {process.port === null ? null : (
-                        <span data-process-port>Port {process.port}</span>
+                        {process.port === null ? null : (
+                          <span data-process-port>Port {process.port}</span>
+                        )}
+                      </span>
+                      {action === "failed" ? (
+                        <span
+                          role="status"
+                          className="block whitespace-normal text-xs font-normal text-error"
+                        >
+                          Couldn't stop {process.command}. Try again.
+                        </span>
+                      ) : (
+                        <>
+                          {holdHintFor === process.id ? (
+                            <span
+                              role="status"
+                              className="block text-xs font-normal text-(--stipe-fg-muted)"
+                            >
+                              Hold to stop
+                            </span>
+                          ) : null}
+                          {filesNotSyncedYet ? (
+                            <span className="block truncate text-xs font-normal text-(--stipe-fg-muted)">
+                              Changes still copying to your files
+                            </span>
+                          ) : null}
+                          {process.cwd === null ? null : (
+                            <span className="block truncate text-xs font-normal text-(--stipe-fg-muted)">
+                              {process.cwd}
+                            </span>
+                          )}
+                        </>
                       )}
-                    </span>
-                    {action === "failed" ? (
-                      <span
-                        role="status"
-                        className="block whitespace-normal text-xs font-normal text-error"
-                      >
-                        Couldn't stop {process.command}. Try again.
-                      </span>
-                    ) : (
-                      <span className="block truncate text-xs font-normal text-base-content/60">
-                        {`${process.cwd ?? "Unknown directory"} · ${process.id}${process.state === "exited" && process.exitCode !== null ? ` · Exit ${String(process.exitCode)}` : ""}`}
-                      </span>
-                    )}
-                  </>
-                }
-                actions={
-                  <>
-                    {preview ? (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        aria-label={`Open preview of port ${String(preview.port)}`}
-                        onClick={() => {
-                          openPreview(preview);
-                        }}
-                      >
-                        <ArrowUpRight size={14} aria-hidden="true" /> Open
-                      </Button>
-                    ) : null}
-                    {process.state === "running" && onStopProcess ? (
-                      <HoldButton
-                        holdHint="A stopped process cannot be resumed. Press and hold to stop it."
-                        size="xs"
-                        variant="ghost"
-                        className="hover:text-error"
-                        disabled={action === "stopping"}
-                        aria-label={`Stop process ${process.command}`}
-                        onConfirm={() => {
-                          void onStopProcess(process.id);
-                        }}
-                      >
-                        {action === "stopping" ? "Stopping…" : "Stop"}
-                      </HoldButton>
-                    ) : null}
-                  </>
-                }
-              />
-            );
-          })}
-        </AnimatedTrayList>
+                    </>
+                  }
+                  actions={
+                    <>
+                      {preview ? (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          aria-label={`Open preview of port ${String(preview.port)}`}
+                          onClick={() => {
+                            openPreview(preview);
+                          }}
+                        >
+                          <ArrowUpRight size={14} aria-hidden="true" /> Open
+                        </Button>
+                      ) : null}
+                      {process.state === "running" && onStopProcess ? (
+                        <HoldButton
+                          holdHint="A stopped process cannot be resumed. Press and hold to stop it."
+                          size="xs"
+                          variant="ghost"
+                          className="hover:text-error"
+                          disabled={action === "stopping"}
+                          aria-label={`Stop process ${process.command}`}
+                          onPointerDown={() => {
+                            pressedAt.current = Date.now();
+                            setHoldHintFor(null);
+                          }}
+                          onPointerUp={() => {
+                            noteRelease(process.id);
+                          }}
+                          onConfirm={() => {
+                            setHoldHintFor(null);
+                            void onStopProcess(process.id);
+                          }}
+                        >
+                          {action === "stopping" ? "Stopping…" : "Stop"}
+                        </HoldButton>
+                      ) : null}
+                    </>
+                  }
+                />
+              );
+            })}
+          </AnimatedTrayList>
+        </div>
         {processLoading ? (
           <p className="mt-2 text-xs text-base-content/60" role="status">
             Refreshing processes…
           </p>
         ) : null}
-        {processError ? (
+        {processError !== null ? (
           <p className="mt-2 text-xs text-error" role="status">
             Couldn't refresh processes. The list may be out of date.
           </p>
@@ -546,7 +654,7 @@ export function ShedTrays({
       id: "processes",
       label: "Processes",
       count: processes?.filter((process) => process.state === "running").length,
-      title: "Computer processes",
+      title: "Processes",
       disabled: !processesAvailable,
       accessibleLabel: processesAvailable
         ? undefined
@@ -566,30 +674,37 @@ export function ShedTrays({
       ),
       content: (
         <>
-          {onStartProcess ? (
+          {processContent}
+          {onStartProcess &&
+          (processError === null || processError.reason === "failed") ? (
             <startForm.form.Subscribe selector={(state) => state.isSubmitting}>
               {(submitting) => (
                 <SchemaForm
                   model={startForm}
                   aria-label="Start a process"
-                  className="mb-3 px-2"
+                  className="mt-3 px-2"
                   disabled={submitting}
                   footer={
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="sm"
-                      loading={submitting}
-                      disabled={submitting}
-                      onClick={() => {
-                        startForm.form.setFieldMeta("command", (meta) => ({
-                          ...meta,
-                          errorMap: { ...meta.errorMap, onServer: undefined },
-                        }));
-                      }}
-                    >
-                      Start
-                    </Button>
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        loading={submitting}
+                        disabled={submitting}
+                        onClick={() => {
+                          startForm.form.setFieldMeta("command", (meta) => ({
+                            ...meta,
+                            errorMap: {
+                              ...meta.errorMap,
+                              onServer: undefined,
+                            },
+                          }));
+                        }}
+                      >
+                        Start
+                      </Button>
+                    </div>
                   }
                 >
                   <FormFields model={startForm} disabled={submitting} />
@@ -597,7 +712,6 @@ export function ShedTrays({
               )}
             </startForm.form.Subscribe>
           ) : null}
-          {processContent}
         </>
       ),
     },

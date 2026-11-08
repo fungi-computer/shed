@@ -1,6 +1,7 @@
 import type { StoryDefault } from "@ladle/react";
 import type {
   ComputerProcess,
+  ComputerRefusal,
   ComputerPorts,
 } from "@fungi.computer/agar/computer";
 import { useState } from "react";
@@ -90,7 +91,7 @@ function Cap({
   portStatus = "loaded",
   processes = null,
   processLoading = false,
-  processError = false,
+  processError = null,
   processActions,
   portActions,
   portsLoading = false,
@@ -99,7 +100,7 @@ function Cap({
   portStatus?: "loaded" | "error" | "not-configured";
   processes?: readonly ComputerProcess[] | null;
   processLoading?: boolean;
-  processError?: boolean;
+  processError?: ComputerRefusal | null;
   processActions?: ReadonlyMap<string, ProcessAction>;
   portActions?: ReadonlyMap<number, PortAction>;
   portsLoading?: boolean;
@@ -209,7 +210,7 @@ export const CapProcessesOpenPendingSync = () => (
         processes: {
           items: processRows,
           loading: false,
-          error: false,
+          error: null,
           refresh: () => undefined,
         },
       }}
@@ -226,8 +227,13 @@ export const CapProcessesOpenPendingSync = () => (
 export const CapProcessesLoading = () => (
   <Cap ports={portSets.one} processLoading />
 );
+const failedRead: ComputerRefusal = {
+  reason: "no-runtime",
+  message: "No Computer is running to answer this yet.",
+  action: "setup",
+};
 export const CapProcessesError = () => (
-  <Cap ports={portSets.one} processError />
+  <Cap ports={portSets.one} processError={failedRead} />
 );
 export const CapPortsLoading = () => <Cap ports={[]} portsLoading />;
 export const CapPortsNotConfigured = () => (
@@ -250,4 +256,47 @@ export const CapProcessStopFailed = () => (
     processes={processRows}
     processActions={new Map([["proc-7f3a", "failed"]])}
   />
+);
+
+function OpenProcesses({
+  processes,
+  error = null,
+}: {
+  processes: readonly ComputerProcess[] | null;
+  error?: ComputerRefusal | null;
+}) {
+  return (
+    <div className="flex h-dvh w-full flex-col justify-end p-4">
+      <ShedDataContext.Provider
+        value={{
+          ports: { items: [], status: "loaded", refresh: () => undefined },
+          processes: {
+            items: processes,
+            loading: false,
+            error,
+            refresh: () => undefined,
+            stop: () => undefined,
+            start: () => true,
+          },
+        }}
+      >
+        <ShedTrays
+          placement="housing"
+          openPreview={() => undefined}
+          openId="processes"
+          onOpenChange={() => undefined}
+        />
+      </ShedDataContext.Provider>
+    </div>
+  );
+}
+export const ProcessesOpenNoRuntime = () => (
+  <OpenProcesses processes={null} error={failedRead} />
+);
+export const ProcessesOpenEmpty = () => <OpenProcesses processes={[]} />;
+export const ProcessesOpenRunning = () => (
+  <OpenProcesses processes={processRows.slice(0, 2)} />
+);
+export const ProcessesOpenExited = () => (
+  <OpenProcesses processes={[processRows[2], processRows[4]]} />
 );
