@@ -553,6 +553,7 @@ function ShedLayout({
               app={app}
               computerId={computerId}
               onStatusChange={onTerminalStatus}
+              openRuntimeSetup={() => app.ui.openSetup("computer")}
               screen={
                 narrow && preview && previewVisible ? (
                   <PortPreview

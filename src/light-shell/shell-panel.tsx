@@ -20,6 +20,7 @@ export function ShellPanel({
   computerId,
   screen,
   onStatusChange,
+  openRuntimeSetup,
 }: {
   app: Pick<AppRoot, "capabilities">;
   computerId: string;
@@ -28,6 +29,7 @@ export function ShellPanel({
     name: string | null;
     state: TerminalState;
   }) => void;
+  openRuntimeSetup?: () => Promise<"opened" | "unavailable">;
 }) {
   const [terminalState, setTerminalState] = useState<TerminalState>("starting");
   const [hasInformation, setHasInformation] = useState(false);
@@ -64,6 +66,7 @@ export function ShellPanel({
       screen={startingScreen}
       light={light}
       onStatusChange={handleTerminalStatus}
+      openRuntimeSetup={openRuntimeSetup}
     />
   );
 }

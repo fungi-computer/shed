@@ -499,7 +499,10 @@ export function ShedTrays({
                 process.exitCode !== 0;
               let tone: StatusTone = "neutral";
               let outcome = "Finished";
-              if (process.state === "running") {
+              if (process.state === "exited" && process.exitCode === null) {
+                tone = "warning";
+                outcome = "Ended · exit not recorded";
+              } else if (process.state === "running") {
                 tone = "success";
                 outcome = "Running";
               } else if (process.state === "uncertain") {

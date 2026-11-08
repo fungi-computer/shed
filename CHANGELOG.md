@@ -1,5 +1,13 @@
 # @fungi.computer/shed
 
+## 0.5.3
+
+### Patch Changes
+
+- Changes since 0.5.2:
+
+  - fix(shed): honest missing-runtime card and no fake Finished (#365)
+
 ## 0.5.2
 
 ### Patch Changes

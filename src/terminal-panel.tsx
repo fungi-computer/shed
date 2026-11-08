@@ -3,6 +3,7 @@ import {
   openComputerTerminal,
   type ComputerTerminalInformation,
 } from "@fungi.computer/agar/computer";
+import { SetupNotice } from "@fungi.computer/caps/blocks/setup-notice";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Loader } from "@fungi.computer/caps/components/loader";
 import { Display } from "@fungi.computer/caps/components/surface";
@@ -75,6 +76,7 @@ export function TerminalPanel({
   light,
   onStatusChange,
   onTerminalReady,
+  openRuntimeSetup,
 }: {
   app: Pick<AppRoot, "capabilities">;
   computerId: string;
@@ -83,7 +85,11 @@ export function TerminalPanel({
   onStatusChange?: (status: TerminalStatus) => void;
   /** Optional film/replay access; omitted in production. Valid until unmount. */
   onTerminalReady?: (handle: TerminalFilmHandle) => void;
+  /** Ask the host to help set up a Computer runtime; absent on hosts without one. */
+  openRuntimeSetup?: () => Promise<"opened" | "unavailable">;
 }) {
+  const [setupWaiting, setSetupWaiting] = useState(false);
+  const [setupUnavailable, setSetupUnavailable] = useState(false);
   const paneRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -684,15 +690,65 @@ export function TerminalPanel({
           </div>
         </>
       ) : null}
-      {!screen && (state === "failed" || state === "closed") && (
+      {!screen && state === "failed" && (
+        <div className="absolute inset-0 flex overflow-auto bg-base-200 p-4">
+          <SetupNotice
+            className="m-auto max-w-[28rem]"
+            variant="panel"
+            need={
+              terminalReady
+                ? "Shed needs a Computer runtime"
+                : "Terminal display could not start"
+            }
+            cause={
+              !terminalReady
+                ? "Reload Shed to retry."
+                : setupUnavailable
+                  ? "Open System Settings, then Computers, to set one up."
+                  : "This Oyster could not start a terminal on its Computer, so commands have nowhere to run."
+            }
+            fix={{
+              label: openRuntimeSetup ? "Set up a Computer" : "Reopen terminal",
+              pending: setupWaiting,
+              onSelect: () => {
+                if (!openRuntimeSetup) {
+                  setRetry((value) => value + 1);
+                  return;
+                }
+                setSetupWaiting(true);
+                setSetupUnavailable(false);
+                openRuntimeSetup().then(
+                  (outcome) => {
+                    if (outcome === "unavailable") {
+                      setSetupWaiting(false);
+                      setSetupUnavailable(true);
+                    }
+                  },
+                  (cause: unknown) => {
+                    setSetupWaiting(false);
+                    console.error("Shed runtime setup failed", cause);
+                  },
+                );
+              },
+            }}
+            secondary={
+              terminalReady && openRuntimeSetup
+                ? {
+                    label: "Reopen terminal",
+                    onSelect: () => {
+                      setSetupWaiting(false);
+                      setRetry((value) => value + 1);
+                    },
+                  }
+                : undefined
+            }
+            waitingFor="a Computer"
+          />
+        </div>
+      )}
+      {!screen && state === "closed" && (
         <div className="absolute inset-0 grid content-center justify-items-center gap-2 bg-base-200 p-4 text-center">
-          <p className="m-0 text-sm">
-            {state === "failed"
-              ? terminalReady
-                ? "Terminal could not connect."
-                : "Terminal display could not start. Reload Shed to retry."
-              : "Terminal session ended."}
-          </p>
+          <p className="m-0 text-sm">Terminal session ended.</p>
           {terminalReady && (
             <Button
               className="terminal-reopen"
