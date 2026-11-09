@@ -1,5 +1,17 @@
 # @fungi.computer/shed
 
+## 0.5.4
+
+### Patch Changes
+
+- Changes since 0.5.3:
+
+  - fix(shed): point runtime setup to the Computers settings entry
+
+- Updated dependencies
+  - @fungi.computer/maosaico@0.1.2
+  - @fungi.computer/caps@0.10.1
+
 ## 0.5.3
 
 ### Patch Changes

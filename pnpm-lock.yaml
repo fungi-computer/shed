@@ -40,8 +40,8 @@ importers:
         specifier: 0.3.0
         version: 0.3.0
       '@fungi.computer/maosaico':
-        specifier: 0.1.1
-        version: 0.1.1(@babel/core@7.29.13)(@babel/template@7.29.7)(@types/react@18.3.3)(react@18.3.1)
+        specifier: 0.1.2
+        version: 0.1.2(@babel/core@7.29.13)(@babel/template@7.29.7)(@types/react@18.3.3)(react@18.3.1)
       '@fungi.computer/sigils':
         specifier: 0.3.0
         version: 0.3.0(react@18.3.1)
@@ -866,8 +866,8 @@ packages:
   '@fungi.computer/knapsack@0.4.9':
     resolution: {integrity: sha512-zpUM4bIf1lUDAVPQUuaHaZDB5Yyvbq39KJu8EQAxedB8DitpZbU8jokflnw1UYi+Z3ITbGdKGhSaBRMnBg/z2w==}
 
-  '@fungi.computer/maosaico@0.1.1':
-    resolution: {integrity: sha512-IdTmV28jYIZq++i/j1I0Pp04yuV2ofr4ueqHMYlHPSWkFqzFXOEXiJqoMtsTRXPAbsw0wyCEBgVc6w5J1jNOIw==}
+  '@fungi.computer/maosaico@0.1.2':
+    resolution: {integrity: sha512-Fk/SMTOJf9nUcozNVlchiDJZ+9mR+B1lw1LUY2h81HW+u5Bul+uSAf8Pz0qrTz5IRIu979zFS7thvSn342wHkg==}
     peerDependencies:
       react: '>=17'
 
@@ -5447,7 +5447,7 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@fungi.computer/maosaico@0.1.1(@babel/core@7.29.13)(@babel/template@7.29.7)(@types/react@18.3.3)(react@18.3.1)':
+  '@fungi.computer/maosaico@0.1.2(@babel/core@7.29.13)(@babel/template@7.29.7)(@types/react@18.3.3)(react@18.3.1)':
     dependencies:
       jotai: 2.20.3(@babel/core@7.29.13)(@babel/template@7.29.7)(@types/react@18.3.3)(react@18.3.1)
       react: 18.3.1

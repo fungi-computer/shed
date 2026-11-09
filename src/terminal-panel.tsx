@@ -704,11 +704,11 @@ export function TerminalPanel({
               !terminalReady
                 ? "Reload Shed to retry."
                 : setupUnavailable
-                  ? "Open System Settings, then Computers, to set one up."
-                  : "This Oyster could not start a terminal on its Computer, so commands have nowhere to run."
+                  ? "Open System Settings → Computers from the desktop menu to set one up."
+                  : "This Oyster could not start a terminal. Open System Settings → Computers to set one up."
             }
             fix={{
-              label: openRuntimeSetup ? "Set up a Computer" : "Reopen terminal",
+              label: openRuntimeSetup ? "Open Computers" : "Reopen terminal",
               pending: setupWaiting,
               onSelect: () => {
                 if (!openRuntimeSetup) {
