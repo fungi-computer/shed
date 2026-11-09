@@ -1,6 +1,6 @@
 {
   "name": "@fungi.computer/shed",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p backend/tsconfig.json --noEmit",

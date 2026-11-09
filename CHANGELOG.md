@@ -1,5 +1,15 @@
 # @fungi.computer/shed
 
+## 0.5.7
+
+### Patch Changes
+
+- Changes since 0.5.6:
+
+  - fix(shed): offer only project-free trial starters
+  - fix(shed): keep starter guidance accurate and concise
+  - fix(shed): explain commands and offer a project-free starter
+
 ## 0.5.6
 
 ### Patch Changes

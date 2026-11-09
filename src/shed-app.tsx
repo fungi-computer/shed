@@ -589,11 +589,18 @@ function ShedLayout({
               />
             ) : (
               <div className="min-h-0 flex-1 overflow-auto pb-6">
-                <h1 className="px-6 pt-6 text-lg font-semibold">Processes</h1>
-                <ShedProcessPanel
-                  openPreview={openPreview}
-                  processNavigation={processNavigation}
-                />
+                <div className="mx-auto w-full max-w-3xl">
+                  <h1 className="px-6 pt-6 text-lg font-semibold">
+                    Run a command
+                  </h1>
+                  <p className="px-6 pt-2 text-sm text-base-content/60">
+                    Run commands on your Computer and read their output here.
+                  </p>
+                  <ShedProcessPanel
+                    openPreview={openPreview}
+                    processNavigation={processNavigation}
+                  />
+                </div>
               </div>
             )
           ) : computerId !== null && app && terminalAvailable ? (

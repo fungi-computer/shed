@@ -68,8 +68,9 @@ const processFields = Schema.Struct({
 
 /** One-click starters that fill the Start form; they run nothing themselves. */
 const processStarters = [
-  { command: "npm run dev", port: 3000 },
-  { command: "python3 -m http.server 8000", port: 8000 },
+  { command: "pwd", port: null },
+  { command: "ls", port: null },
+  { command: "echo hello", port: null },
 ] as const;
 
 export type ShedProcessPanelProps = {
@@ -185,8 +186,7 @@ export function useShedProcessPanel({
             title="Nothing running"
             description={
               <>
-                Start a dev server, for example{" "}
-                <InlineCode>npm run dev</InlineCode>.
+                Try <InlineCode>pwd</InlineCode> to see your working folder.
               </>
             }
             actions={
