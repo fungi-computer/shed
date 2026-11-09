@@ -1,5 +1,14 @@
 # @fungi.computer/shed
 
+## 0.5.6
+
+### Patch Changes
+
+- Changes since 0.5.5:
+
+  - fix(shed): frame command output and show history exit results
+  - fix(shed): make Processes the main surface for command-only Computers
+
 ## 0.5.5
 
 ### Patch Changes

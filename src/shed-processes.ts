@@ -123,7 +123,11 @@ export function useShedProcesses(app: QueryApp | null, visible: boolean) {
         : { input: identity, requestId: replayKey() };
     retryIntent.current = intent;
     try {
-      await start.mutateAsync({ ...input, requestId: intent.requestId });
+      const process = await start.mutateAsync({
+        ...input,
+        requestId: intent.requestId,
+      });
+      setSelectedOutput({ computerId, id: process.id });
       if (retryIntent.current === intent) retryIntent.current = null;
       return true;
     } catch (cause) {

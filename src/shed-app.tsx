@@ -27,6 +27,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ShedProcessPanel } from "./shed-process-panel.js";
 import { useShedProcesses } from "./shed-processes.js";
 import { useShedPorts } from "./shed-ports.js";
 import { ShedDataContext, useShedData } from "./shed-data.js";
@@ -299,8 +300,8 @@ export function ShedWorkspaceView({
     if (processId === null) return;
     handledOpenRequest.current = openRequest.requestId;
     setProcessNavigation({ requestId: openRequest.requestId, processId });
-    setOpenTray("processes");
-  }, [computerId, openRequest]);
+    setOpenTray(execOnly ? null : "processes");
+  }, [computerId, openRequest, execOnly]);
   const [trayInset, setTrayInset] = useState<number | undefined>(undefined);
   const [previewPort, setPreviewPort] = useState<number | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -398,21 +399,25 @@ export function ShedWorkspaceView({
                   expanded: openTray === "ports",
                 },
               ]),
-          {
-            kind: "button" as const,
-            id: "processes",
-            text: "Processes",
-            icon: "processes" as const,
-            opens: "dialog" as const,
-            expanded: openTray === "processes",
-            count:
-              processes?.filter((process) => process.state === "running")
-                .length ?? 0,
-            disabled: !processesAvailable,
-            title: processesAvailable
-              ? "Processes on this Computer"
-              : "Processes can't be listed yet",
-          },
+          ...(execOnly
+            ? []
+            : [
+                {
+                  kind: "button" as const,
+                  id: "processes",
+                  text: "Processes",
+                  icon: "processes" as const,
+                  opens: "dialog" as const,
+                  expanded: openTray === "processes",
+                  count:
+                    processes?.filter((process) => process.state === "running")
+                      .length ?? 0,
+                  disabled: !processesAvailable,
+                  title: processesAvailable
+                    ? "Processes on this Computer"
+                    : "Processes can't be listed yet",
+                },
+              ]),
           ...(narrow && preview
             ? [
                 {
@@ -440,6 +445,7 @@ export function ShedWorkspaceView({
         setPreviewVisible((visible) => !visible);
         return true;
       }
+      if (execOnly && action.itemId === "processes") return false;
       if (["ports", "processes", "access"].includes(action.itemId)) {
         // The tray opens above the key the person used in the shell's bar.
         setTrayInset(action.anchor?.start);
@@ -477,14 +483,15 @@ export function ShedWorkspaceView({
               setPreviewPort(null);
             }}
             onTerminalStatus={onTerminalStatus}
-            openProcesses={() => {
-              setOpenTray("processes");
-            }}
+            execOnly={execOnly}
+            openPreview={openPreview}
+            processNavigation={processNavigation}
           />
         </MaosaicoRoot>
       </div>
       {computerId === null ? null : (
         <ShedTrays
+          processesInPane={execOnly}
           placement="host"
           openPreview={openPreview}
           openId={openTray}
@@ -515,10 +522,14 @@ function ShedLayout({
   previewVisible,
   onClosePreview,
   onTerminalStatus,
-  openProcesses,
+  execOnly,
+  openPreview,
+  processNavigation,
 }: ShedWorkspaceViewProps & {
   terminalAvailable: boolean;
-  openProcesses: () => void;
+  execOnly: boolean;
+  openPreview: (port: ShedPreviewPort) => void;
+  processNavigation: ShedTraysProps["processNavigation"];
   bounds: { width: number; height: number };
   narrow: boolean;
   preview: ShedPreviewPort | null;
@@ -567,9 +578,25 @@ function ShedLayout({
       <ShedPane id="terminal">
         <section
           className="flex h-full min-h-0 w-full flex-col overflow-hidden"
-          aria-label="Terminal"
+          aria-label={execOnly ? "Processes" : "Terminal"}
         >
-          {computerId !== null && app && terminalAvailable ? (
+          {computerId !== null && execOnly ? (
+            narrow && preview && previewVisible ? (
+              <PortPreview
+                port={preview}
+                onClose={closePreview}
+                onPopOut={popOutPreview}
+              />
+            ) : (
+              <div className="min-h-0 flex-1 overflow-auto pb-6">
+                <h1 className="px-6 pt-6 text-lg font-semibold">Processes</h1>
+                <ShedProcessPanel
+                  openPreview={openPreview}
+                  processNavigation={processNavigation}
+                />
+              </div>
+            )
+          ) : computerId !== null && app && terminalAvailable ? (
             <ShellPanel
               key={computerId}
               app={app}
@@ -577,7 +604,6 @@ function ShedLayout({
               onStatusChange={onTerminalStatus}
               openRuntimeSetup={() => app.ui.openSetup("computer")}
               setup={app.context.get().setup}
-              openProcesses={openProcesses}
               screen={
                 narrow && preview && previewVisible ? (
                   <PortPreview
