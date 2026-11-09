@@ -1,5 +1,6 @@
 import type {
   ComputerProcess,
+  ComputerProcessLogs,
   ComputerRefusal,
   ComputerPorts,
 } from "@fungi.computer/agar/computer";
@@ -29,6 +30,16 @@ export type ShedData = {
     refresh?: () => void | Promise<void>;
     stop?: (id: string) => void | Promise<void>;
     start?: (input: ShedProcessCommand) => boolean | Promise<boolean>;
+    unavailableReason?: string | undefined;
+    output?:
+      | {
+          processId: string | null;
+          data: ComputerProcessLogs | null;
+          loading: boolean;
+          failed: boolean;
+          select(id: string | null): void;
+        }
+      | undefined;
   };
 };
 

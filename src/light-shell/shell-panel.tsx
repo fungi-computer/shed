@@ -1,4 +1,7 @@
-import type { AppRoot } from "@fungi.computer/agar";
+import { Sigil } from "@fungi.computer/sigils";
+import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
+import { Button } from "@fungi.computer/caps/components/button";
+import type { AppRoot, AppSetup } from "@fungi.computer/agar";
 import { Loader } from "@fungi.computer/caps/components/loader";
 import { useCallback, useState, type ReactNode } from "react";
 import {
@@ -21,8 +24,12 @@ export function ShellPanel({
   screen,
   onStatusChange,
   openRuntimeSetup,
+  setup,
+  openProcesses,
 }: {
   app: Pick<AppRoot, "capabilities">;
+  setup?: AppSetup | undefined;
+  openProcesses?: (() => void) | undefined;
   computerId: string;
   screen?: ReactNode;
   onStatusChange?: (status: {
@@ -59,11 +66,27 @@ export function ShellPanel({
       </div>
     ) : undefined);
 
+  if (setup?.terminal === "exec-only")
+    return (
+      <EmptyState
+        className="m-auto max-w-md p-6"
+        visual={<Sigil name="computer" size={48} />}
+        title="Run commands in Processes"
+        description="This Computer runs commands, but has no interactive terminal."
+        actions={
+          openProcesses ? (
+            <Button onClick={openProcesses}>Open Processes</Button>
+          ) : undefined
+        }
+      />
+    );
+
   return (
     <TerminalPanel
       app={app}
       computerId={computerId}
       screen={startingScreen}
+      runtimeMissing={setup?.terminal === "missing"}
       light={light}
       onStatusChange={handleTerminalStatus}
       openRuntimeSetup={openRuntimeSetup}

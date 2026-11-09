@@ -77,8 +77,10 @@ export function TerminalPanel({
   onStatusChange,
   onTerminalReady,
   openRuntimeSetup,
+  runtimeMissing = false,
 }: {
   app: Pick<AppRoot, "capabilities">;
+  runtimeMissing?: boolean;
   computerId: string;
   screen?: ReactNode;
   light?: LightShellPort;
@@ -732,7 +734,7 @@ export function TerminalPanel({
               },
             }}
             secondary={
-              terminalReady && openRuntimeSetup
+              terminalReady && openRuntimeSetup && !runtimeMissing
                 ? {
                     label: "Reopen terminal",
                     onSelect: () => {

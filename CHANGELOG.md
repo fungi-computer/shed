@@ -1,5 +1,17 @@
 # @fungi.computer/shed
 
+## 0.5.5
+
+### Patch Changes
+
+- Changes since 0.5.4:
+
+  - fix(oyster): run trial Computers in a workspace sandbox
+
+- Updated dependencies
+  - @fungi.computer/agar@0.9.1
+  - @fungi.computer/braid@0.4.8
+
 ## 0.5.4
 
 ### Patch Changes

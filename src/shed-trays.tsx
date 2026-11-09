@@ -21,6 +21,7 @@ import { HoldButton } from "@fungi.computer/caps/components/hold-button";
 import { InlineCode } from "@fungi.computer/caps/components/inline-code";
 import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
 import { Alert } from "@fungi.computer/caps/components/alert";
+import { Loader } from "@fungi.computer/caps/components/loader";
 import { Button } from "@fungi.computer/caps/components/button";
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import {
@@ -137,6 +138,8 @@ export function ShedTrays({
       refresh: onRefreshProcesses,
       stop: onStopProcess,
       start: onStartProcess,
+      output: processOutput,
+      unavailableReason: runtimeReason,
     },
   } = useShedData();
   const processList = useRef<HTMLDivElement>(null);
@@ -577,6 +580,18 @@ export function ShedTrays({
                   }
                   actions={
                     <>
+                      {processOutput ? (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          aria-label={`Show output of ${process.command}`}
+                          onClick={() => {
+                            processOutput.select(process.id);
+                          }}
+                        >
+                          Output
+                        </Button>
+                      ) : null}
                       {preview ? (
                         <Button
                           size="xs"
@@ -678,6 +693,53 @@ export function ShedTrays({
       content: (
         <>
           {processContent}
+          {processOutput?.processId ? (
+            <section
+              aria-label="Process output"
+              className="mt-3 space-y-2 px-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">
+                  {processOutput.data?.process.command ?? "Process output"}
+                </span>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  onClick={() => {
+                    processOutput.select(null);
+                  }}
+                >
+                  Close output
+                </Button>
+              </div>
+              {processOutput.failed ? (
+                <p role="status">Couldn't read output. Try opening it again.</p>
+              ) : processOutput.loading ? (
+                <Loader size="sm" label="Loading output" />
+              ) : (
+                <>
+                  <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-base-200 p-3 text-xs">
+                    {processOutput.data?.lines.length === 0
+                      ? "No output yet."
+                      : processOutput.data?.lines.join("\n")}
+                  </pre>
+                  {processOutput.data?.process.exitCode != null ? (
+                    <p className="text-xs">
+                      Exit {processOutput.data.process.exitCode}
+                    </p>
+                  ) : null}
+                  {processOutput.data?.truncated ? (
+                    <p className="text-xs">Showing the most recent output.</p>
+                  ) : null}
+                </>
+              )}
+            </section>
+          ) : null}
+          {runtimeReason ? (
+            <p role="status" className="px-2 pt-3 text-sm">
+              {runtimeReason}
+            </p>
+          ) : null}
           {onStartProcess &&
           (processError === null || processError.reason === "failed") ? (
             <startForm.form.Subscribe selector={(state) => state.isSubmitting}>
@@ -686,7 +748,7 @@ export function ShedTrays({
                   model={startForm}
                   aria-label="Start a process"
                   className="mt-3 px-2"
-                  disabled={submitting}
+                  disabled={submitting || runtimeReason !== undefined}
                   footer={
                     <div className="flex justify-end">
                       <Button
@@ -694,7 +756,7 @@ export function ShedTrays({
                         variant="primary"
                         size="sm"
                         loading={submitting}
-                        disabled={submitting}
+                        disabled={submitting || runtimeReason !== undefined}
                         onClick={() => {
                           startForm.form.setFieldMeta("command", (meta) => ({
                             ...meta,
@@ -710,7 +772,10 @@ export function ShedTrays({
                     </div>
                   }
                 >
-                  <FormFields model={startForm} disabled={submitting} />
+                  <FormFields
+                    model={startForm}
+                    disabled={submitting || runtimeReason !== undefined}
+                  />
                 </SchemaForm>
               )}
             </startForm.form.Subscribe>

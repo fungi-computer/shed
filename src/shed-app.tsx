@@ -85,6 +85,7 @@ function ShedWorkspace({
     query: processQuery,
     stop: stopProcess,
     startCommand,
+    output: processOutput,
     actions: processActions,
     enabled: canListProcesses,
   } = useShedProcesses(app, appContext?.visibility === "visible");
@@ -158,6 +159,11 @@ function ShedWorkspace({
             : null,
           loading: canListProcesses && processQuery.isFetching,
           error: processRefusal,
+          unavailableReason:
+            appContext?.setup?.terminal === "missing"
+              ? "Needs a Computer runtime"
+              : undefined,
+          output: canListProcesses ? processOutput : undefined,
           fix: processFix,
           actions: processActions,
           refresh: canListProcesses ? refreshProcesses : undefined,
@@ -273,7 +279,9 @@ export function ShedWorkspaceView({
     },
   } = useShedData();
   const [openTray, setOpenTray] = useState<string | null>(null);
-  const openRequest = useStore(app?.context)?.openRequest ?? null;
+  const liveContext = useStore(app?.context);
+  const openRequest = liveContext?.openRequest ?? null;
+  const execOnly = liveContext?.setup?.terminal === "exec-only";
   const handledOpenRequest = useRef<string | null>(null);
   const [processNavigation, setProcessNavigation] = useState<NonNullable<
     ShedTraysProps["processNavigation"]
@@ -349,25 +357,34 @@ export function ShedWorkspaceView({
     computerId === null
       ? []
       : [
-          ...(terminalNow
+          ...(execOnly
             ? [
                 {
                   kind: "text" as const,
                   id: "terminal",
-                  text: `Terminal ${terminalNow.state}`,
-                  tone: terminalTone(terminalNow.state),
+                  text: "Commands ready",
+                  tone: "success" as const,
                 },
               ]
-            : terminalAvailable
-              ? []
-              : [
+            : terminalNow
+              ? [
                   {
                     kind: "text" as const,
                     id: "terminal",
-                    text: "Terminal unavailable",
-                    tone: "warning" as const,
+                    text: `Terminal ${terminalNow.state}`,
+                    tone: terminalTone(terminalNow.state),
                   },
-                ]),
+                ]
+              : terminalAvailable
+                ? []
+                : [
+                    {
+                      kind: "text" as const,
+                      id: "terminal",
+                      text: "Terminal unavailable",
+                      tone: "warning" as const,
+                    },
+                  ]),
           ...(portStatus === "not-configured"
             ? []
             : [
@@ -460,6 +477,9 @@ export function ShedWorkspaceView({
               setPreviewPort(null);
             }}
             onTerminalStatus={onTerminalStatus}
+            openProcesses={() => {
+              setOpenTray("processes");
+            }}
           />
         </MaosaicoRoot>
       </div>
@@ -495,8 +515,10 @@ function ShedLayout({
   previewVisible,
   onClosePreview,
   onTerminalStatus,
+  openProcesses,
 }: ShedWorkspaceViewProps & {
   terminalAvailable: boolean;
+  openProcesses: () => void;
   bounds: { width: number; height: number };
   narrow: boolean;
   preview: ShedPreviewPort | null;
@@ -554,6 +576,8 @@ function ShedLayout({
               computerId={computerId}
               onStatusChange={onTerminalStatus}
               openRuntimeSetup={() => app.ui.openSetup("computer")}
+              setup={app.context.get().setup}
+              openProcesses={openProcesses}
               screen={
                 narrow && preview && previewVisible ? (
                   <PortPreview
