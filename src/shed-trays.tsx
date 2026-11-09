@@ -15,6 +15,8 @@ import {
   useSchemaForm,
 } from "@fungi.computer/caps/form";
 import { Schema } from "effect";
+import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
+import { FailureLine } from "@fungi.computer/caps/components/failure-line";
 import { UndoAction } from "@fungi.computer/caps/components/undo-action";
 import { Button } from "@fungi.computer/caps/components/button";
 import { IconButton } from "@fungi.computer/caps/components/icon-button";
@@ -134,16 +136,15 @@ export function ShedTrays({
     }
     if (ports === null && portStatus === "loading") {
       return (
-        <StatusTrayNote title="Loading exposed ports">
-          Checking which ports this Computer has exposed.
-        </StatusTrayNote>
+        <LoadingState message="Loading web previews" size="sm" framed={false} />
       );
     }
     if (ports === null && portStatus === "error") {
       return (
-        <StatusTrayNote title="Couldn't load exposed ports">
-          Check the Computer connection, then refresh to try again.
-        </StatusTrayNote>
+        <FailureLine
+          message="Couldn't load exposed ports."
+          onRetry={onRefreshPorts ? () => void onRefreshPorts() : undefined}
+        />
       );
     }
     return (
@@ -237,16 +238,8 @@ export function ShedTrays({
             })}
           </AnimatedInventoryList>
         ) : (
-          <StatusTrayNote
-            title={
-              portStatus === "error"
-                ? "Couldn't load exposed ports"
-                : "No exposed ports"
-            }
-          >
-            {portStatus === "error"
-              ? "Check the Computer connection, then refresh to try again."
-              : "Expose a port from this Computer to see it here."}
+          <StatusTrayNote title="No exposed ports">
+            Running a web server? Expose its port below to open a preview.
           </StatusTrayNote>
         )}
         <portForm.form.Subscribe
@@ -287,14 +280,17 @@ export function ShedTrays({
           }}
         </portForm.form.Subscribe>
         {portStatus === "loading" && ports !== null ? (
-          <p className="mt-2 text-xs text-base-content/60" role="status">
-            Refreshing exposed ports…
-          </p>
+          <LoadingState
+            message="Refreshing exposed ports…"
+            size="sm"
+            framed={false}
+          />
         ) : null}
         {portStatus === "error" && ports !== null ? (
-          <p className="mt-2 text-xs text-error" role="status">
-            Couldn't refresh exposed ports. The list may be out of date.
-          </p>
+          <FailureLine
+            message="Couldn't refresh exposed ports. The list may be out of date."
+            onRetry={onRefreshPorts ? () => void onRefreshPorts() : undefined}
+          />
         ) : null}
       </>
     );

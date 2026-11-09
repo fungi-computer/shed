@@ -66,6 +66,9 @@ export function useShedProcesses(app: QueryApp | null, visible: boolean) {
     data: outputQuery.data ?? null,
     loading: outputQuery.isPending,
     failed: outputQuery.isError,
+    retry: async () => {
+      await outputQuery.refetch();
+    },
     select: (id: string | null) => {
       setSelectedOutput(id === null ? null : { computerId, id });
     },

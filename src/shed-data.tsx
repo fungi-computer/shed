@@ -37,6 +37,7 @@ export type ShedData = {
           data: ComputerProcessLogs | null;
           loading: boolean;
           failed: boolean;
+          retry(): void | Promise<void>;
           select(id: string | null): void;
         }
       | undefined;

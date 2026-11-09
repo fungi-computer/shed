@@ -18,7 +18,8 @@ import { Screen } from "@fungi.computer/caps/components/surface";
 import { InlineCode } from "@fungi.computer/caps/components/inline-code";
 import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
 import { Alert } from "@fungi.computer/caps/components/alert";
-import { Loader } from "@fungi.computer/caps/components/loader";
+import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
+import { FailureLine } from "@fungi.computer/caps/components/failure-line";
 import { Button } from "@fungi.computer/caps/components/button";
 import {
   Status,
@@ -38,6 +39,7 @@ const processFields = Schema.Struct({
   port: Schema.NullOr(computerPortExposureSchema.fields.port).annotate(
     field<number | null>({
       label: "Port (optional)",
+      help: "Web server preview only.",
       min: 1,
       max: 65_535,
       render: (control) => (
@@ -68,9 +70,9 @@ const processFields = Schema.Struct({
 
 /** One-click starters that fill the Start form; they run nothing themselves. */
 const processStarters = [
-  { command: "pwd", port: null },
-  { command: "ls", port: null },
-  { command: "echo hello", port: null },
+  { command: "pwd", label: "Folder", port: null },
+  { command: "ls", label: "Files", port: null },
+  { command: "echo hello", label: "Hello", port: null },
 ] as const;
 
 export type ShedProcessPanelProps = {
@@ -90,6 +92,7 @@ export function useShedProcessPanel({
       loading: processLoading,
       error: processError,
       fix: processFix,
+      refresh: onRefreshProcesses,
       actions: processActions,
       stop: onStopProcess,
       start: onStartProcess,
@@ -98,6 +101,7 @@ export function useShedProcessPanel({
     },
   } = useShedData();
   const processList = useRef<HTMLDivElement>(null);
+  const formRegion = useRef<HTMLDivElement>(null);
   // A press shorter than the hold teaches the gesture inline, beside the row.
   const pressedAt = useRef(0);
   const [holdHintFor, setHoldHintFor] = useState<string | null>(null);
@@ -149,9 +153,11 @@ export function useShedProcessPanel({
       );
     if (processLoading && processes === null)
       return (
-        <StatusTrayNote title="Loading processes">
-          Checking this Computer's process inventory.
-        </StatusTrayNote>
+        <LoadingState
+          message="Loading command history"
+          size="sm"
+          framed={false}
+        />
       );
     if (processError !== null && processes === null)
       return (
@@ -182,42 +188,10 @@ export function useShedProcessPanel({
         <div className="px-2 pb-3">
           <EmptyState
             variant="quiet"
+            visual="blobs"
             headingLevel={3}
-            title="Nothing running"
-            description={
-              <>
-                Try <InlineCode>pwd</InlineCode> to see your working folder.
-              </>
-            }
-            actions={
-              <ul
-                aria-label="Try one of these"
-                className="m-0 flex list-none flex-wrap gap-2 p-0"
-              >
-                {processStarters.map((starter) => (
-                  <li key={starter.command}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        startForm.form.setFieldValue(
-                          "command",
-                          starter.command,
-                        );
-                        startForm.form.setFieldValue("port", starter.port);
-                        document
-                          .querySelector<HTMLElement>(
-                            '[aria-label="Start a process"] button[type="submit"]',
-                          )
-                          ?.focus();
-                      }}
-                    >
-                      <InlineCode>{starter.command}</InlineCode>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            }
+            title="Your first command starts here"
+            description="Choose a starter above, then press Start. Output and past commands stay here."
           />
         </div>
       );
@@ -373,20 +347,25 @@ export function useShedProcessPanel({
           </AnimatedInventoryList>
         </div>
         {processLoading ? (
-          <p className="mt-2 text-xs text-base-content/60" role="status">
-            Refreshing processes…
-          </p>
+          <LoadingState
+            message="Refreshing processes…"
+            size="sm"
+            framed={false}
+          />
         ) : null}
         {processError !== null ? (
-          <p className="mt-2 text-xs text-error" role="status">
-            Couldn't refresh processes. The list may be out of date.
-          </p>
+          <FailureLine
+            message="Couldn't refresh processes. The list may be out of date."
+            onRetry={
+              onRefreshProcesses ? () => void onRefreshProcesses() : undefined
+            }
+          />
         ) : null}
       </>
     );
   })();
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-5 p-4 sm:p-6" ref={formRegion}>
       {runtimeReason ? (
         <p role="status" className="px-2 pt-3 text-sm">
           {runtimeReason}
@@ -396,48 +375,79 @@ export function useShedProcessPanel({
       (processError === null || processError.reason === "failed") ? (
         <startForm.form.Subscribe selector={(state) => state.isSubmitting}>
           {(submitting) => (
-            <SchemaForm
-              model={startForm}
-              aria-label="Start a process"
-              className="mt-3 px-2"
-              disabled={submitting || runtimeReason !== undefined}
-              footer={
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    loading={submitting}
+            <Screen className="p-4">
+              <SchemaForm
+                model={startForm}
+                aria-label="Start a process"
+                className="space-y-3"
+                disabled={submitting || runtimeReason !== undefined}
+                footer={
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="sm"
+                      loading={submitting}
+                      disabled={submitting || runtimeReason !== undefined}
+                      onClick={() => {
+                        startForm.form.setFieldMeta("command", (meta) => ({
+                          ...meta,
+                          errorMap: {
+                            ...meta.errorMap,
+                            onServer: undefined,
+                          },
+                        }));
+                      }}
+                    >
+                      Start
+                    </Button>
+                  </div>
+                }
+              >
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
+                  <FormFields
+                    model={startForm}
                     disabled={submitting || runtimeReason !== undefined}
-                    onClick={() => {
-                      startForm.form.setFieldMeta("command", (meta) => ({
-                        ...meta,
-                        errorMap: {
-                          ...meta.errorMap,
-                          onServer: undefined,
-                        },
-                      }));
-                    }}
-                  >
-                    Start
-                  </Button>
+                  />
                 </div>
-              }
-            >
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
-                <FormFields
-                  model={startForm}
-                  disabled={submitting || runtimeReason !== undefined}
-                />
-              </div>
-            </SchemaForm>
+              </SchemaForm>
+              <ul
+                aria-label="Try one of these"
+                className="m-0 mt-3 flex list-none flex-wrap gap-2 p-0"
+              >
+                {processStarters.map((starter) => (
+                  <li key={starter.command}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={submitting || runtimeReason !== undefined}
+                      title={starter.command}
+                      onClick={() => {
+                        startForm.form.setFieldValue(
+                          "command",
+                          starter.command,
+                        );
+                        startForm.form.setFieldValue("port", starter.port);
+                        formRegion.current
+                          ?.querySelector<HTMLInputElement>(
+                            'input[name="command"]',
+                          )
+                          ?.focus();
+                      }}
+                    >
+                      {starter.label} <InlineCode>{starter.command}</InlineCode>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </Screen>
           )}
         </startForm.form.Subscribe>
       ) : null}
       {processOutput?.processId ? (
-        <section aria-label="Process output" className="mt-3 space-y-2 px-2">
+        <section aria-label="Process output" className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold">
+            <span className="min-w-0 break-words font-mono text-sm font-semibold">
               {processOutput.data?.process.command ?? "Process output"}
             </span>
             <Button
@@ -451,15 +461,20 @@ export function useShedProcessPanel({
             </Button>
           </div>
           {processOutput.failed ? (
-            <p role="status">Couldn't read output. Try opening it again.</p>
+            <FailureLine
+              message="Couldn't read command output."
+              onRetry={() => void processOutput.retry()}
+            />
           ) : processOutput.loading ? (
-            <Loader size="sm" label="Loading output" />
+            <LoadingState size="sm" message="Loading output" />
           ) : (
             <>
               <Screen>
-                <pre className="max-h-48 overflow-auto whitespace-pre-wrap p-3 text-xs">
+                <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all p-3 text-xs">
                   {processOutput.data?.lines.length === 0
-                    ? "No output yet."
+                    ? processOutput.data.process.state === "exited"
+                      ? "Finished without output."
+                      : "No output yet."
                     : processOutput.data?.lines.join("\n")}
                 </pre>
               </Screen>
@@ -476,7 +491,7 @@ export function useShedProcessPanel({
         </section>
       ) : null}
       <section aria-label="Process history" className="space-y-3">
-        <h2 className="px-2 text-sm font-semibold">History</h2>
+        <h2 className="text-sm font-semibold">History</h2>
         {processContent}
       </section>
     </div>

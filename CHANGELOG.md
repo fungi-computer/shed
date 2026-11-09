@@ -1,5 +1,14 @@
 # @fungi.computer/shed
 
+## 0.5.8
+
+### Patch Changes
+
+- Changes since 0.5.7:
+
+  - fix(shed): make inventory waits and retries consistent
+  - fix(shed): complete command guidance and output recovery
+
 ## 0.5.7
 
 ### Patch Changes
