@@ -1,5 +1,17 @@
 # @fungi.computer/shed
 
+## 0.5.11
+
+### Patch Changes
+
+- Changes since 0.5.10:
+
+  - fix(shed): use the narrowed missing-runtime setup fact
+  - fix(shed): start the trial command runner on macOS
+
+- Updated dependencies
+  - @fungi.computer/caps@0.10.4
+
 ## 0.5.10
 
 ### Patch Changes

@@ -162,7 +162,8 @@ function ShedWorkspace({
           error: processRefusal,
           unavailableReason:
             appContext?.setup?.terminal === "missing"
-              ? "Needs a Computer runtime"
+              ? (appContext.setup.terminalReason ??
+                "The command runner is not connected.")
               : undefined,
           output: canListProcesses ? processOutput : undefined,
           fix: processFix,
@@ -541,6 +542,8 @@ function ShedLayout({
   }) => void;
 }) {
   const layout = useMaosaicoLayout();
+  const context = useStore(app?.context);
+  const runtimeMissing = context?.setup?.terminal === "missing";
   const showSplitPreview = preview !== null && previewVisible && !narrow;
   const previewPaneOrdered = useRef(false);
   useEffect(() => {
@@ -580,7 +583,18 @@ function ShedLayout({
           className="flex h-full min-h-0 w-full flex-col overflow-hidden"
           aria-label={execOnly ? "Processes" : "Terminal"}
         >
-          {computerId !== null && execOnly ? (
+          {runtimeMissing ? (
+            <EmptyState
+              className="m-auto max-w-lg p-6"
+              role="status"
+              variant="hint"
+              title="Commands are unavailable"
+              description={
+                context.setup.terminalReason ??
+                "The command runner is not connected. Reopen Shed to reconnect."
+              }
+            />
+          ) : computerId !== null && execOnly ? (
             narrow && preview && previewVisible ? (
               <PortPreview
                 port={preview}
