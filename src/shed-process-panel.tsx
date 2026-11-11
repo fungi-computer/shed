@@ -35,7 +35,9 @@ import { AnimatedInventoryList } from "./inventory-list.js";
 const processFields = Schema.Struct({
   command: Schema.NonEmptyString.pipe(
     Schema.check(Schema.isMaxLength(16 * 1024)),
-  ).annotate(field({ label: "Command", required: true })),
+  ).annotate(
+    field({ label: "Command", required: true, placeholder: "pnpm dev" }),
+  ),
   port: Schema.NullOr(computerPortExposureSchema.fields.port).annotate(
     field<number | null>({
       label: "Port (optional)",
@@ -48,6 +50,7 @@ const processFields = Schema.Struct({
           id={control.id}
           type="number"
           inputMode="numeric"
+          placeholder="5173"
           min={1}
           max={65_535}
           step={1}
@@ -197,7 +200,7 @@ export function useShedProcessPanel({
       );
     return (
       <>
-        <div className="px-1">
+        <div className="-mx-1">
           <AnimatedInventoryList
             label="Computer process inventory"
             order={processes.map(({ id }) => id)}
@@ -294,7 +297,7 @@ export function useShedProcessPanel({
                     <>
                       {processOutput ? (
                         <Button
-                          size="xs"
+                          size="sm"
                           variant="ghost"
                           aria-label={`Show output of ${process.command}`}
                           onClick={() => {
@@ -306,7 +309,7 @@ export function useShedProcessPanel({
                       ) : null}
                       {preview ? (
                         <Button
-                          size="xs"
+                          size="sm"
                           variant="ghost"
                           aria-label={`Open preview of port ${String(preview.port)}`}
                           onClick={() => {
@@ -319,7 +322,7 @@ export function useShedProcessPanel({
                       {process.state === "running" && onStopProcess ? (
                         <HoldButton
                           holdHint="A stopped process cannot be resumed. Press and hold to stop it."
-                          size="xs"
+                          size="sm"
                           variant="ghost"
                           className="hover:text-error"
                           disabled={action === "stopping"}
@@ -375,40 +378,37 @@ export function useShedProcessPanel({
       (processError === null || processError.reason === "failed") ? (
         <startForm.form.Subscribe selector={(state) => state.isSubmitting}>
           {(submitting) => (
-            <Screen className="p-4">
+            <div>
               <SchemaForm
                 model={startForm}
                 aria-label="Start a process"
                 className="space-y-3"
                 disabled={submitting || runtimeReason !== undefined}
-                footer={
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="sm"
-                      loading={submitting}
-                      disabled={submitting || runtimeReason !== undefined}
-                      onClick={() => {
-                        startForm.form.setFieldMeta("command", (meta) => ({
-                          ...meta,
-                          errorMap: {
-                            ...meta.errorMap,
-                            onServer: undefined,
-                          },
-                        }));
-                      }}
-                    >
-                      Start
-                    </Button>
-                  </div>
-                }
+                footer={null}
               >
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
                   <FormFields
                     model={startForm}
                     disabled={submitting || runtimeReason !== undefined}
                   />
+                  <Button
+                    className="sm:col-span-2 sm:justify-self-start"
+                    type="submit"
+                    variant="primary"
+                    loading={submitting}
+                    disabled={submitting || runtimeReason !== undefined}
+                    onClick={() => {
+                      startForm.form.setFieldMeta("command", (meta) => ({
+                        ...meta,
+                        errorMap: {
+                          ...meta.errorMap,
+                          onServer: undefined,
+                        },
+                      }));
+                    }}
+                  >
+                    Start
+                  </Button>
                 </div>
               </SchemaForm>
               <ul
@@ -440,7 +440,7 @@ export function useShedProcessPanel({
                   </li>
                 ))}
               </ul>
-            </Screen>
+            </div>
           )}
         </startForm.form.Subscribe>
       ) : null}

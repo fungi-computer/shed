@@ -1,5 +1,17 @@
 # @fungi.computer/shed
 
+## 0.5.15
+
+### Patch Changes
+
+- Changes since 0.5.14:
+
+  - fix(shed): history row actions use the small button size
+  - fix(shed): tighten tray panels
+
+- Updated dependencies
+  - @fungi.computer/caps@0.10.7
+
 ## 0.5.14
 
 ### Patch Changes

@@ -189,7 +189,7 @@ export function ShedTrays({
                     preview ? (
                       <>
                         <Button
-                          size="xs"
+                          size="sm"
                           variant="ghost"
                           disabled={pending}
                           onClick={() => {
@@ -204,7 +204,7 @@ export function ShedTrays({
                           aria-label={`Stop exposing port ${String(port)}`}
                           armedAnnouncement={`Port ${String(port)} closes in 5 seconds.`}
                           undoneAnnouncement={`Port ${String(port)} stays open.`}
-                          size="xs"
+                          size="sm"
                           variant="ghost"
                           className="hover:text-error"
                           disabled={!onUnexposePort || pending}
@@ -267,7 +267,6 @@ export function ShedTrays({
                   <Button
                     className="self-end"
                     type="submit"
-                    size="sm"
                     disabled={disabled}
                     loading={busy}
                     onClick={clearPortRefusal}

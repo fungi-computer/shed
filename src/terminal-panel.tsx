@@ -6,7 +6,7 @@ import {
 import { SetupNotice } from "@fungi.computer/caps/blocks/setup-notice";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Loader } from "@fungi.computer/caps/components/loader";
-import { Display } from "@fungi.computer/caps/components/surface";
+import { Screen } from "@fungi.computer/caps/components/surface";
 import { terminalPalette } from "@fungi.computer/stipe";
 import { getTheme, subscribeTheme } from "@fungi.computer/stipe/theme";
 import { FitAddon, Terminal } from "ghostty-web";
@@ -642,7 +642,7 @@ export function TerminalPanel({
       data-shell-state={hasLight ? lightPhase : undefined}
       data-route={hasLight ? view.route : undefined}
     >
-      <Display size="sm" placement="embedded" fit="fill" density="compact">
+      <Screen className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
         <div ref={paneRef} className="relative min-h-0 flex-1 overflow-hidden">
           <div
             ref={hostRef}
@@ -677,7 +677,7 @@ export function TerminalPanel({
             </div>
           ) : null}
         </div>
-      </Display>
+      </Screen>
       {hasLight ? (
         <>
           {/* The canvas has no text. These carry the committed rows and the
