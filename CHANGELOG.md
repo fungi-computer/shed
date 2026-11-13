@@ -1,5 +1,21 @@
 # @fungi.computer/shed
 
+## 0.6.0
+
+### Minor Changes
+
+- Changes since 0.5.21:
+
+  - feat(computer): say a command ended because the Computer went to sleep
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.11.0
+  - @fungi.computer/computer-contract@0.2.0
+  - @fungi.computer/braid@0.4.11
+
 ## 0.5.21
 
 ### Patch Changes

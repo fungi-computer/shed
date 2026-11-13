@@ -20,6 +20,7 @@ function process(id: string, command: string): ComputerProcess {
     exitCode: null,
     sync: "synced",
     endedAt: null,
+    endedReason: null,
   };
 }
 

@@ -39,6 +39,7 @@ const processRows: readonly ComputerProcess[] = [
     exitCode: null,
     sync: "synced",
     endedAt: null,
+    endedReason: null,
   },
   {
     port: null,
@@ -50,6 +51,7 @@ const processRows: readonly ComputerProcess[] = [
     exitCode: null,
     sync: "synced",
     endedAt: null,
+    endedReason: null,
   },
   {
     port: null,
@@ -61,6 +63,7 @@ const processRows: readonly ComputerProcess[] = [
     exitCode: 1,
     sync: "synced",
     endedAt: now - 60_000,
+    endedReason: null,
   },
   {
     port: null,
@@ -72,6 +75,7 @@ const processRows: readonly ComputerProcess[] = [
     exitCode: null,
     sync: "synced",
     endedAt: null,
+    endedReason: null,
   },
   {
     port: null,
@@ -83,6 +87,7 @@ const processRows: readonly ComputerProcess[] = [
     exitCode: 0,
     sync: "pending",
     endedAt: now - 5_000,
+    endedReason: null,
   },
 ];
 

@@ -220,6 +220,9 @@ export function useShedProcessPanel({
               } else if (process.state === "uncertain") {
                 tone = "warning";
                 outcome = "Status unknown";
+              } else if (process.endedReason === "idle-sleep") {
+                tone = "warning";
+                outcome = "Stopped when the Computer went to sleep";
               } else if (process.exitCode === null) {
                 tone = "warning";
                 outcome = "Ended · exit not recorded";

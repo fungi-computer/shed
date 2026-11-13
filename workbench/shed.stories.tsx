@@ -20,6 +20,7 @@ const liveProcesses: readonly ComputerProcess[] = [
     exitCode: null,
     sync: "synced",
     endedAt: null,
+    endedReason: null,
   },
   {
     port: null,
@@ -31,6 +32,7 @@ const liveProcesses: readonly ComputerProcess[] = [
     exitCode: null,
     sync: "synced",
     endedAt: null,
+    endedReason: null,
   },
 ];
 
