@@ -104,6 +104,8 @@ export function useShedProcessPanel({
     },
   } = useShedData();
   const processList = useRef<HTMLDivElement>(null);
+  const outputText = useRef<HTMLPreElement>(null);
+  const outputSection = useRef<HTMLElement>(null);
   const formRegion = useRef<HTMLDivElement>(null);
   // A press shorter than the hold teaches the gesture inline, beside the row.
   const pressedAt = useRef(0);
@@ -132,6 +134,20 @@ export function useShedProcessPanel({
     row.focus();
     focusedRequest.current = processNavigation.requestId;
   }, [processNavigation, processes]);
+  // The output opens above the history it was chosen from; bring it into view.
+  const openedOutput = processOutput?.processId ?? null;
+  const outputRead = processOutput?.data !== null;
+  useEffect(() => {
+    if (openedOutput !== null && outputRead)
+      outputSection.current?.scrollIntoView({ block: "start" });
+  }, [openedOutput, outputRead]);
+  // A running job's newest lines are the ones to read: follow them as they come.
+  const followedLines = processOutput?.data?.lines.length ?? 0;
+  const followed = processOutput?.data?.process.state === "running";
+  useEffect(() => {
+    const text = outputText.current;
+    if (followed && text) text.scrollTop = text.scrollHeight;
+  }, [followed, followedLines]);
   const startForm = useSchemaForm({
     schema: processFields,
     defaultValues: { command: "", port: null },
@@ -448,7 +464,11 @@ export function useShedProcessPanel({
         </startForm.form.Subscribe>
       ) : null}
       {processOutput?.processId ? (
-        <section aria-label="Process output" className="space-y-3">
+        <section
+          ref={outputSection}
+          aria-label="Process output"
+          className="space-y-3"
+        >
           <div className="flex items-center justify-between gap-2">
             <span className="min-w-0 break-words font-mono text-sm font-semibold">
               {processOutput.data?.process.command ?? "Process output"}
@@ -473,7 +493,10 @@ export function useShedProcessPanel({
           ) : (
             <>
               <Screen>
-                <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all p-3 text-xs">
+                <pre
+                  ref={outputText}
+                  className="max-h-48 overflow-auto whitespace-pre-wrap break-all p-3 text-xs"
+                >
                   {processOutput.data?.lines.length === 0
                     ? processOutput.data.process.state === "exited"
                       ? "Finished without output."
@@ -481,6 +504,16 @@ export function useShedProcessPanel({
                     : processOutput.data?.lines.join("\n")}
                 </pre>
               </Screen>
+              {processOutput.data?.process.state === "running" ? (
+                <p role="status" className="text-xs">
+                  Updating while it runs
+                </p>
+              ) : null}
+              {processOutput.data?.process.endedReason === "idle-sleep" ? (
+                <p className="text-xs">
+                  Stopped when the Computer went to sleep.
+                </p>
+              ) : null}
               {processOutput.data?.process.exitCode != null ? (
                 <p className="text-xs">
                   Exit {processOutput.data.process.exitCode}

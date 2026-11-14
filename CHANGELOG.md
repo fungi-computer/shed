@@ -1,5 +1,26 @@
 # @fungi.computer/shed
 
+## 0.7.0
+
+### Minor Changes
+
+- Changes since 0.6.2:
+
+  - feat(shed): read process output on the Hub; say a long command's limit
+    plainly
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.13.0
+  - @fungi.computer/caps@0.11.4
+  - @fungi.computer/computer-contract@0.4.0
+  - @fungi.computer/sigils@0.3.2
+  - @fungi.computer/braid@0.4.14
+
 ## 0.6.2
 
 ### Patch Changes
