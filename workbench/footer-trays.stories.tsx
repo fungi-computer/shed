@@ -20,7 +20,6 @@ const makePort = (port: number) => ({
   port,
   previewUrl,
   openMode: "inline" as const,
-  expiresAt: Date.now() + 300_000,
 });
 const portSets = {
   one: [makePort(5173)],

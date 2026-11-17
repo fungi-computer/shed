@@ -8,7 +8,10 @@ let loaded: Promise<Ghostty> | undefined;
  * `main.tsx` starts it before mounting so compile overlaps the host handshake.
  */
 export function loadGhostty(): Promise<Ghostty> {
-  loaded ??= Ghostty.load();
+  loaded ??= Ghostty.load().catch((cause: unknown) => {
+    loaded = undefined;
+    throw cause;
+  });
   return loaded;
 }
 

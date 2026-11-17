@@ -131,6 +131,5 @@ function previewPort(port: number): ShedPreviewPort {
     port,
     previewUrl: `https://preview.example.test/${String(port)}`,
     openMode: "inline" as const,
-    expiresAt: startedAt + 300000,
   };
 }

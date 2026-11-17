@@ -1,13 +1,13 @@
 import * as Redacted from "effect/Redacted";
+import { toast } from "@fungi.computer/caps/components/toaster";
 
-/** Retain the original Shed failure without printing exception or command data. */
-export function reportCatchFailure(operation: string, cause: unknown): void {
-  console.error(
-    JSON.stringify({
-      source: "shed",
-      operation,
-      failureKind: cause instanceof Error ? cause.name : "NonErrorThrown",
-    }),
-    Redacted.make(cause),
-  );
+/** Only authored messages reach the toast; exception and command data stay redacted. */
+export function reportCatchFailure(message: string, cause: unknown): void {
+  reportCaughtError(cause);
+  toast.error(message, { id: message, closeButton: true });
+}
+
+/** Cleanup and cancelled work retain diagnostics without interrupting the person. */
+export function reportCaughtError(cause: unknown): void {
+  console.error("Shed operation failed", Redacted.make(cause));
 }

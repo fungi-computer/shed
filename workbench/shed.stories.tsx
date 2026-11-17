@@ -60,13 +60,11 @@ function Workbench({
             port: 5173,
             previewUrl: "https://member.preview.example.test/",
             openMode: "inline" as const,
-            expiresAt: Date.now() + 300_000,
           },
           {
             port: 8787,
             previewUrl: "https://member.preview.example.test/",
             openMode: "inline" as const,
-            expiresAt: Date.now() + 300_000,
           },
         ].slice(0, live ? 2 : 1)
       : null,

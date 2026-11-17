@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { replayKey } from "@fungi.computer/cairn";
-import * as Redacted from "effect/Redacted";
+import { reportCatchFailure } from "./failure.js";
 import type { ShedProcessCommand } from "./shed-data.js";
 import { AppError } from "@fungi.computer/agar";
 import {
@@ -84,6 +84,20 @@ export function useShedProcesses(app: QueryApp | null, visible: boolean) {
     enabled,
     refetchInterval: visible ? 10_000 : false,
   });
+  useEffect(() => {
+    if (query.isError)
+      reportCatchFailure(
+        "Could not refresh processes. Try again.",
+        query.error,
+      );
+  }, [query.isError, query.errorUpdatedAt, query.error]);
+  useEffect(() => {
+    if (outputQuery.isError)
+      reportCatchFailure(
+        "Could not read command output. Try again.",
+        outputQuery.error,
+      );
+  }, [outputQuery.isError, outputQuery.errorUpdatedAt, outputQuery.error]);
   // Capture this Computer's handle before a selection change can replace it.
   const handle = enabled ? app.capabilities.require(computerProcesses) : null;
   const stop = useMutation({
@@ -95,6 +109,9 @@ export function useShedProcesses(app: QueryApp | null, visible: boolean) {
           retryable: false,
         });
       return handle.kill(id);
+    },
+    onError: (cause) => {
+      reportCatchFailure("Could not stop the process. Try again.", cause);
     },
     onSettled: () => client.invalidateQueries({ queryKey, exact: true }),
   });
@@ -134,7 +151,10 @@ export function useShedProcesses(app: QueryApp | null, visible: boolean) {
       if (retryIntent.current === intent) retryIntent.current = null;
       return true;
     } catch (cause) {
-      console.error("Shed process start failed", Redacted.make(cause));
+      reportCatchFailure(
+        "Couldn’t confirm the process start. Try again.",
+        cause,
+      );
       return false;
     }
   }

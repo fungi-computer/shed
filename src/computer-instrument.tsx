@@ -1,3 +1,4 @@
+import { reportCatchFailure } from "./failure.js";
 import { useState } from "react";
 import {
   computerList,
@@ -56,15 +57,13 @@ export function useComputerAccessTray({
   ports: ComputerReading;
 }): StatusTrayItem {
   const [requesting, setRequesting] = useState(false);
-  const [requestError, setRequestError] = useState(false);
   const requestPermissions = async () => {
     if (!app) return;
     setRequesting(true);
-    setRequestError(false);
     try {
       await app.ui.requestAppPermissions({});
-    } catch {
-      setRequestError(true);
+    } catch (cause) {
+      reportCatchFailure("Could not open App permissions. Try again.", cause);
     } finally {
       setRequesting(false);
     }
@@ -124,11 +123,6 @@ export function useComputerAccessTray({
               {requesting ? "Opening permissions…" : "App permissions…"}
             </Button>
           </div>
-        ) : null}
-        {requestError ? (
-          <p role="alert" className="shed-instrument-detail">
-            Could not open App permissions. Try again.
-          </p>
         ) : null}
       </div>
     ),
