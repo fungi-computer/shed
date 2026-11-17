@@ -1,5 +1,23 @@
 # @fungi.computer/shed
 
+## 0.9.0
+
+### Minor Changes
+
+- Changes since 0.8.0:
+
+  - feat(gills): declare surface Gills beside row Gills
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.21.0
+  - @fungi.computer/braid@0.5.0
+  - @fungi.computer/gills@0.4.0
+  - @fungi.computer/computer-contract@0.5.4
+
 ## 0.8.0
 
 ### Minor Changes

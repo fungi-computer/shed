@@ -8,6 +8,7 @@ type GillRow = ReturnType<AppBackendGill["rows"]>["rows"][number];
 
 /** Inventory only: this read never starts or stops a process. */
 export const processesGill = defineAppGill({
+  view: "rows",
   id: "processes",
   title: "Processes",
   source: "listProcesses",
