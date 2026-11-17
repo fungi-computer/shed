@@ -1,5 +1,20 @@
 # @fungi.computer/shed
 
+## 0.8.0
+
+### Minor Changes
+
+- Changes since 0.7.12:
+
+  - feat(apps): require one host-derived caller scope
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/agar@0.20.0
+  - @fungi.computer/braid@0.4.24
+  - @fungi.computer/computer-contract@0.5.3
+
 ## 0.7.12
 
 ### Patch Changes
