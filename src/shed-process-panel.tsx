@@ -17,9 +17,7 @@ import { HoldButton } from "@fungi.computer/caps/components/hold-button";
 import { Screen } from "@fungi.computer/caps/components/surface";
 import { InlineCode } from "@fungi.computer/caps/components/inline-code";
 import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
-import { Alert } from "@fungi.computer/caps/components/alert";
 import { LoadingState } from "@fungi.computer/caps/blocks/loading-state";
-import { FailureLine } from "@fungi.computer/caps/components/failure-line";
 import { Button } from "@fungi.computer/caps/components/button";
 import {
   Status,
@@ -95,7 +93,6 @@ export function useShedProcessPanel({
       loading: processLoading,
       error: processError,
       fix: processFix,
-      refresh: onRefreshProcesses,
       actions: processActions,
       stop: onStopProcess,
       start: onStartProcess,
@@ -156,9 +153,6 @@ export function useShedProcessPanel({
         ? { kind: "saved" }
         : {
             kind: "refused",
-            fields: {
-              command: "Couldn’t confirm the process start. Try again.",
-            },
           },
   });
   const processesAvailable =
@@ -181,12 +175,12 @@ export function useShedProcessPanel({
     if (processError !== null && processes === null)
       return (
         <div className="px-2 pb-3">
-          <Alert
-            tone={processError.reason === "failed" ? "error" : "warning"}
+          <EmptyState
+            variant="quiet"
             role="status"
             title="Can't run commands"
             description={processError.message}
-            action={
+            actions={
               processFix === undefined ? undefined : (
                 <Button
                   size="xs"
@@ -281,35 +275,26 @@ export function useShedProcessPanel({
                           <span data-process-port>Port {process.port}</span>
                         )}
                       </span>
-                      {action === "failed" ? (
-                        <span
-                          role="status"
-                          className="block whitespace-normal text-xs font-normal text-error"
-                        >
-                          Couldn't stop {process.command}. Try again.
-                        </span>
-                      ) : (
-                        <>
-                          {holdHintFor === process.id ? (
-                            <span
-                              role="status"
-                              className="block text-xs font-normal text-(--stipe-fg-muted)"
-                            >
-                              Hold to stop
-                            </span>
-                          ) : null}
-                          {filesNotSyncedYet ? (
-                            <span className="block truncate text-xs font-normal text-(--stipe-fg-muted)">
-                              Changes still copying to your files
-                            </span>
-                          ) : null}
-                          {process.cwd === null ? null : (
-                            <span className="block truncate text-xs font-normal text-(--stipe-fg-muted)">
-                              {process.cwd}
-                            </span>
-                          )}
-                        </>
-                      )}
+                      <>
+                        {holdHintFor === process.id ? (
+                          <span
+                            role="status"
+                            className="block text-xs font-normal text-(--stipe-fg-muted)"
+                          >
+                            Hold to stop
+                          </span>
+                        ) : null}
+                        {filesNotSyncedYet ? (
+                          <span className="block truncate text-xs font-normal text-(--stipe-fg-muted)">
+                            Changes still copying to your files
+                          </span>
+                        ) : null}
+                        {process.cwd === null ? null : (
+                          <span className="block truncate text-xs font-normal text-(--stipe-fg-muted)">
+                            {process.cwd}
+                          </span>
+                        )}
+                      </>
                     </>
                   }
                   actions={
@@ -373,14 +358,6 @@ export function useShedProcessPanel({
             message="Refreshing processes…"
             size="sm"
             framed={false}
-          />
-        ) : null}
-        {processError !== null ? (
-          <FailureLine
-            message="Couldn't refresh processes. The list may be out of date."
-            onRetry={
-              onRefreshProcesses ? () => void onRefreshProcesses() : undefined
-            }
           />
         ) : null}
       </>
@@ -484,9 +461,14 @@ export function useShedProcessPanel({
             </Button>
           </div>
           {processOutput.failed ? (
-            <FailureLine
-              message="Couldn't read command output."
-              onRetry={() => void processOutput.retry()}
+            <EmptyState
+              variant="quiet"
+              title="Output unavailable"
+              description="Retry to read this command’s output."
+              primaryAction={{
+                label: "Retry",
+                onSelect: () => void processOutput.retry(),
+              }}
             />
           ) : processOutput.loading ? (
             <LoadingState size="sm" message="Loading output" />

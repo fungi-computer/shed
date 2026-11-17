@@ -41,7 +41,7 @@ export function useShedPorts(app: QueryApp | null, visible: boolean) {
           code: "DISCONNECTED",
           retryable: true,
         });
-      // Preserve Agar's URL and expiration validation.
+      // Preserve Agar's URL validation.
       return listComputerPorts(app.capabilities);
     }),
     enabled,

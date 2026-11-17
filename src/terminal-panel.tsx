@@ -1,9 +1,11 @@
+import { toast } from "@fungi.computer/caps/components/toaster";
+import { reportCaughtError, reportCatchFailure } from "./failure.js";
 import type { AppRoot } from "@fungi.computer/agar";
 import {
   openComputerTerminal,
   type ComputerTerminalInformation,
 } from "@fungi.computer/agar/computer";
-import { SetupNotice } from "@fungi.computer/caps/blocks/setup-notice";
+import { EmptyState } from "@fungi.computer/caps/blocks/empty-state";
 import { Button } from "@fungi.computer/caps/components/button";
 import { Loader } from "@fungi.computer/caps/components/loader";
 import { Screen } from "@fungi.computer/caps/components/surface";
@@ -77,10 +79,8 @@ export function TerminalPanel({
   onStatusChange,
   onTerminalReady,
   openRuntimeSetup,
-  runtimeMissing = false,
 }: {
   app: Pick<AppRoot, "capabilities">;
-  runtimeMissing?: boolean;
   computerId: string;
   screen?: ReactNode;
   light?: LightShellPort;
@@ -91,7 +91,7 @@ export function TerminalPanel({
   openRuntimeSetup?: () => Promise<"opened" | "unavailable">;
 }) {
   const [setupWaiting, setSetupWaiting] = useState(false);
-  const [setupUnavailable, setSetupUnavailable] = useState(false);
+  const [displayRetry, setDisplayRetry] = useState(0);
   const paneRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
@@ -242,7 +242,12 @@ export function TerminalPanel({
           rows: Math.max(2, terminal.rows),
         })
         .catch((cause: unknown) => {
-          console.error("Shed terminal operation failed", cause);
+          if (!alive) reportCaughtError(cause);
+          else
+            reportCatchFailure(
+              "The terminal operation failed. Try reconnecting.",
+              cause,
+            );
         });
     };
     const hide = () => terminalRef.current?.blur();
@@ -272,7 +277,12 @@ export function TerminalPanel({
         void writerRef.current
           ?.write(new TextEncoder().encode(text))
           .catch((cause: unknown) => {
-            console.error("Shed terminal operation failed", cause);
+            if (!alive) reportCaughtError(cause);
+            else
+              reportCatchFailure(
+                "The terminal operation failed. Try reconnecting.",
+                cause,
+              );
           });
       };
       const key = (name: string) =>
@@ -342,7 +352,12 @@ export function TerminalPanel({
             void writerRef.current
               ?.write(encoder.encode(data))
               .catch((cause: unknown) => {
-                console.error("Shed terminal operation failed", cause);
+                if (!alive) reportCaughtError(cause);
+                else
+                  reportCatchFailure(
+                    "The terminal operation failed. Try reconnecting.",
+                    cause,
+                  );
               });
           });
           terminal.attachCustomKeyEventHandler(
@@ -378,8 +393,15 @@ export function TerminalPanel({
               );
             })
             .catch((cause: unknown) => {
-              console.error("Shed terminal operation failed", cause);
-              if (alive) setState("failed");
+              if (!alive) {
+                reportCaughtError(cause);
+                return;
+              }
+              reportCatchFailure(
+                "The terminal operation failed. Try reconnecting.",
+                cause,
+              );
+              setState("failed");
             });
         }, themeRoot);
         resizeObserver = new ResizeObserver(resize);
@@ -389,9 +411,15 @@ export function TerminalPanel({
         window.addEventListener("focus", show);
       })
       .catch((cause: unknown) => {
-        console.error("Shed terminal operation failed", cause);
-
-        if (alive) setState("failed");
+        if (!alive) {
+          reportCaughtError(cause);
+          return;
+        }
+        reportCatchFailure(
+          "The terminal operation failed. Try reconnecting.",
+          cause,
+        );
+        setState("failed");
       });
 
     return () => {
@@ -404,20 +432,20 @@ export function TerminalPanel({
       window.removeEventListener("blur", hide);
       window.removeEventListener("focus", show);
       void sessionRef.current?.close().catch((cause: unknown) => {
-        console.error("Shed terminal operation failed", cause);
+        reportCaughtError(cause);
         return undefined;
       });
       try {
         terminalRef.current?.dispose();
       } catch (cause) {
-        console.error("Shed terminal operation failed", cause);
+        reportCaughtError(cause);
 
         // Terminal disposal is best effort during iframe teardown.
       }
       terminalRef.current = null;
       fitRef.current = null;
     };
-  }, []);
+  }, [displayRetry]);
 
   // Agar owns the authenticated bridge and reconnect lifecycle. Shed owns one
   // terminal session handle and closes it when this Computer/window changes.
@@ -469,7 +497,7 @@ export function TerminalPanel({
       writer?.releaseLock();
       if (sessionRef.current === session) sessionRef.current = null;
       void session?.close().catch((cause: unknown) => {
-        console.error("Shed terminal operation failed", cause);
+        reportCaughtError(cause);
         return undefined;
       });
     };
@@ -489,11 +517,16 @@ export function TerminalPanel({
           else writeOutput(chunk);
         }
       } catch (cause) {
-        console.error("Shed terminal operation failed", cause);
-        if (!lightController) {
-          if (!controller.signal.aborted) setState("failed");
+        if (controller.signal.aborted) {
+          reportCaughtError(cause);
           return;
         }
+        reportCatchFailure(
+          "The terminal operation failed. Try reconnecting.",
+          cause,
+        );
+        setState("failed");
+        return;
       }
       if (controller.signal.aborted || sessionRef.current !== opened) return;
       detach();
@@ -597,9 +630,15 @@ export function TerminalPanel({
         setState("open");
         await pump(opened, activeReader);
       } catch (cause) {
-        console.error("Shed terminal operation failed", cause);
-
-        if (!controller.signal.aborted) setState("failed");
+        if (controller.signal.aborted) {
+          reportCaughtError(cause);
+          return;
+        }
+        reportCatchFailure(
+          "The terminal operation failed. Try reconnecting.",
+          cause,
+        );
+        setState("failed");
       }
     };
     void start();
@@ -610,14 +649,14 @@ export function TerminalPanel({
       lightController?.dispose();
       if (lightInputRef.current === lightInput) lightInputRef.current = null;
       void reader?.cancel().catch((cause: unknown) => {
-        console.error("Shed terminal operation failed", cause);
+        reportCaughtError(cause);
         return undefined;
       });
       if (writerRef.current === writer) writerRef.current = null;
       writer?.releaseLock();
       if (sessionRef.current === session) sessionRef.current = null;
       void session?.close().catch((cause: unknown) => {
-        console.error("Shed terminal operation failed", cause);
+        reportCaughtError(cause);
         return undefined;
       });
     };
@@ -694,57 +733,49 @@ export function TerminalPanel({
       ) : null}
       {!screen && state === "failed" && (
         <div className="absolute inset-0 flex overflow-auto bg-base-200 p-4">
-          <SetupNotice
+          <EmptyState
             className="m-auto max-w-[28rem]"
             variant="panel"
-            need={
-              terminalReady
-                ? "Shed needs a Computer runtime"
-                : "Terminal display could not start"
-            }
-            cause={
-              !terminalReady
-                ? "Reload Shed to retry."
-                : setupUnavailable
-                  ? "Open System Settings → Computers from the desktop menu to set one up."
-                  : "This Oyster could not start a terminal. Open System Settings → Computers to set one up."
-            }
-            fix={{
-              label: openRuntimeSetup ? "Open Computers" : "Reopen terminal",
-              pending: setupWaiting,
+            title="Terminal could not connect"
+            description="Retry the connection, or open Computer settings to check the runtime."
+            primaryAction={{
+              label: "Retry",
               onSelect: () => {
-                if (!openRuntimeSetup) {
-                  setRetry((value) => value + 1);
-                  return;
-                }
-                setSetupWaiting(true);
-                setSetupUnavailable(false);
-                openRuntimeSetup().then(
-                  (outcome) => {
-                    if (outcome === "unavailable") {
-                      setSetupWaiting(false);
-                      setSetupUnavailable(true);
-                    }
-                  },
-                  (cause: unknown) => {
-                    setSetupWaiting(false);
-                    console.error("Shed runtime setup failed", cause);
-                  },
-                );
+                setState("starting");
+                if (!terminalReady) setDisplayRetry((value) => value + 1);
+                else setRetry((value) => value + 1);
               },
             }}
-            secondary={
-              terminalReady && openRuntimeSetup && !runtimeMissing
-                ? {
-                    label: "Reopen terminal",
-                    onSelect: () => {
-                      setSetupWaiting(false);
-                      setRetry((value) => value + 1);
-                    },
-                  }
-                : undefined
+            actions={
+              openRuntimeSetup ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  loading={setupWaiting}
+                  onClick={() => {
+                    setSetupWaiting(true);
+                    void openRuntimeSetup().then(
+                      (outcome) => {
+                        setSetupWaiting(false);
+                        if (outcome === "unavailable")
+                          toast.error(
+                            "Open System Settings → Computers from the desktop menu.",
+                          );
+                      },
+                      (cause: unknown) => {
+                        setSetupWaiting(false);
+                        reportCatchFailure(
+                          "Could not open Computer settings. Try again.",
+                          cause,
+                        );
+                      },
+                    );
+                  }}
+                >
+                  Open settings
+                </Button>
+              ) : undefined
             }
-            waitingFor="a Computer"
           />
         </div>
       )}

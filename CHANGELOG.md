@@ -1,5 +1,24 @@
 # @fungi.computer/shed
 
+## 0.7.10
+
+### Patch Changes
+
+- Changes since 0.7.9:
+
+  - fix: isolate Oyster previews and refuse sibling requests
+  - fix(oyster): open reusable preview links through owner admission
+  - fix(shed): retain recognized cleanup diagnostics
+  - fix(shed): keep terminal teardown failures out of toasts
+  - fix(shed): surface failures through Caps toasts
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.18.2
+  - @fungi.computer/caps@0.12.0
+  - @fungi.computer/braid@0.4.21
+  - @fungi.computer/computer-contract@0.5.1
+
 ## 0.7.9
 
 ### Patch Changes

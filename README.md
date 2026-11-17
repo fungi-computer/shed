@@ -45,9 +45,11 @@ Oyster with `git push`, builds them on your Computer and installs them. Sign in
 at `$OYSTER_URL/login` with the owner key and open Shed from the Tourtois
 desktop. Run `install-apps` again to update; each App keeps its data.
 
-Port previews open on a second origin that never carries your sign-in. Oyster
-turns them on when its host sets `OYSTER_PREVIEW_ORIGIN`; without it, **Ports**
-still exposes and removes ports and says that previews are off.
+Port previews open on a separate host for each Computer and port. Oyster
+requires `OYSTER_PREVIEW_DOMAIN` with wildcard TLS and routing on a different
+registrable site from the owner sign-in. Without it, **Ports** still exposes and
+removes ports and says that previews are off. Reopen old preview links from the
+Ports tray.
 
 ## Change it
 

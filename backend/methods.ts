@@ -61,7 +61,6 @@ export type ShedMethodContext = Readonly<{
 }>;
 const preview = z.strictObject({
   previewUrl: z.url(),
-  expiresAt: z.number().int().positive(),
 });
 const bytes = z.strictObject({
   path: z.string(),
@@ -100,7 +99,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       handler: async (input, context: ShedMethodContext, caller) => {
         if (!caller.computerId)
           throw new Error("Computer preview access is not granted");
-        // Project the issued URL; preview-row presentation policy stays with the host.
+        // Project the preview URL; preview-row presentation policy stays with the host.
         return z
           .object(preview.shape)
           .parse(await context.env.COMPUTER.preview(input));

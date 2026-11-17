@@ -1,4 +1,4 @@
-import type { AppRoot, AppSetup } from "@fungi.computer/agar";
+import type { AppRoot } from "@fungi.computer/agar";
 import { Loader } from "@fungi.computer/caps/components/loader";
 import { useCallback, useState, type ReactNode } from "react";
 import {
@@ -21,10 +21,8 @@ export function ShellPanel({
   screen,
   onStatusChange,
   openRuntimeSetup,
-  setup,
 }: {
   app: Pick<AppRoot, "capabilities">;
-  setup?: AppSetup | undefined;
   computerId: string;
   screen?: ReactNode;
   onStatusChange?: (status: {
@@ -66,7 +64,6 @@ export function ShellPanel({
       app={app}
       computerId={computerId}
       screen={startingScreen}
-      runtimeMissing={setup?.terminal === "missing"}
       light={light}
       onStatusChange={handleTerminalStatus}
       openRuntimeSetup={openRuntimeSetup}

@@ -1,5 +1,5 @@
 import type { ShellRoute } from "./shell-route.js";
-import { reportCatchFailure } from "../failure.js";
+import { reportCaughtError, reportCatchFailure } from "../failure.js";
 import type { LightRunInput, LightRunResult } from "./connector.js";
 import {
   LightDiscipline,
@@ -129,7 +129,12 @@ export class LightController {
     this.#apply(this.#discipline.returnFromFull());
     // Reconnect quietly so the next full command is warm. No banner, no reset.
     this.#ports.connect().catch((cause: unknown) => {
-      reportCatchFailure("light-shell.reconnect", cause);
+      if (this.#disposed) reportCaughtError(cause);
+      else
+        reportCatchFailure(
+          "Could not reconnect the terminal. Try again.",
+          cause,
+        );
     });
   }
 
@@ -186,9 +191,12 @@ export class LightController {
         this.#apply(this.#discipline.finish(result));
       })
       .catch((cause: unknown) => {
-        reportCatchFailure("light-shell.command", cause);
-        if (!controller.signal.aborted)
-          this.#apply(this.#discipline.fail("light"));
+        if (controller.signal.aborted) {
+          reportCaughtError(cause);
+          return;
+        }
+        reportCatchFailure("Could not run the command. Try again.", cause);
+        this.#apply(this.#discipline.fail("light"));
       })
       .finally(() => {
         if (this.#abort === controller) {
@@ -202,7 +210,11 @@ export class LightController {
     this.#mode = "full";
     const send = () => this.#ports.send(`${command}\n`);
     const failed = (cause: unknown) => {
-      reportCatchFailure("light-shell.full", cause);
+      if (this.#disposed) {
+        reportCaughtError(cause);
+        return;
+      }
+      reportCatchFailure("Could not open the full shell. Try again.", cause);
       if (this.#mode !== "full") return;
       this.#mode = "light";
       this.#drop();

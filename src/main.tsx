@@ -1,3 +1,4 @@
+import { reportCatchFailure } from "./failure.js";
 import { createElement } from "react";
 import { mountApp } from "@fungi.computer/agar/react";
 import { createQueryClient } from "@fungi.computer/agar/query";
@@ -11,7 +12,7 @@ if (!root) throw new Error("Shed root is missing");
 
 // Start the wasm compile now; it overlaps the host handshake.
 loadGhostty().catch((cause: unknown) => {
-  console.error("Shed terminal operation failed", cause);
+  reportCatchFailure("The terminal operation failed. Try reconnecting.", cause);
 });
 
 mountApp(root, { name: "Shed", queryClient: createQueryClient() }, ({ app }) =>

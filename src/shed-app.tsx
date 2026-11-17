@@ -1,3 +1,5 @@
+import { Toaster } from "@fungi.computer/caps/components/toaster";
+import { reportCatchFailure } from "./failure.js";
 import {
   registerCatalog,
   type AppContext,
@@ -55,11 +57,14 @@ export type ConnectedApp = ShedAppConnection & Pick<AppRoot, "identity">;
 export function ShedApp({ app }: { app: ConnectedApp | null }) {
   const appContext = useStore(app?.context) ?? null;
   return (
-    <ShedWorkspace
-      key={JSON.stringify([app?.identity.surfaceId, appContext?.computerId])}
-      app={app}
-      appContext={appContext}
-    />
+    <>
+      <Toaster />
+      <ShedWorkspace
+        key={JSON.stringify([app?.identity.surfaceId, appContext?.computerId])}
+        app={app}
+        appContext={appContext}
+      />
+    </>
   );
 }
 
@@ -115,7 +120,10 @@ function ShedWorkspace({
                 void app.ui
                   .requestAppPermissions({ computers: ["computer.execute"] })
                   .catch((cause: unknown) => {
-                    console.error("Shed Computer operation failed", cause);
+                    reportCatchFailure(
+                      "Could not open App permissions. Try again.",
+                      cause,
+                    );
                     return undefined;
                   })
             : undefined
@@ -135,7 +143,10 @@ function ShedWorkspace({
             void app.ui
               .requestAppPermissions({ computers: ["computer.execute"] })
               .catch((cause: unknown) => {
-                console.error("Shed Computer operation failed", cause);
+                reportCatchFailure(
+                  "Could not open App permissions. Try again.",
+                  cause,
+                );
               })
         : undefined;
 
@@ -628,7 +639,6 @@ function ShedLayout({
               computerId={computerId}
               onStatusChange={onTerminalStatus}
               openRuntimeSetup={() => app.ui.openSetup("computer")}
-              setup={app.context.get().setup}
               screen={
                 narrow && preview && previewVisible ? (
                   <PortPreview
@@ -668,8 +678,8 @@ function ShedLayout({
                             computers: ["computer.execute"],
                           })
                           .catch((cause: unknown) => {
-                            console.error(
-                              "Shed Computer operation failed",
+                            reportCatchFailure(
+                              "Could not open App permissions. Try again.",
                               cause,
                             );
                             return undefined;
