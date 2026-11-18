@@ -1,5 +1,12 @@
 # @fungi.computer/shed
 
+## 0.10.5
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/caps@0.12.2
+
 ## 0.10.4
 
 ### Patch Changes

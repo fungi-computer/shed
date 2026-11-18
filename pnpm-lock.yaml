@@ -32,8 +32,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
       '@fungi.computer/caps':
-        specifier: 0.12.1
-        version: 0.12.1(@tanstack/react-form@1.33.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.12.2
+        version: 0.12.2(@tanstack/react-form@1.33.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@fungi.computer/computer-contract':
         specifier: 0.5.7
         version: 0.5.7(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)
@@ -853,8 +853,8 @@ packages:
   '@fungi.computer/capnweb@0.12.0-fungi.0':
     resolution: {integrity: sha512-82WCBlrbJRx8Y6i+aMfF11seh4wb9aosgSrEvNulx6FqqNyDP/X5YyjL4pXItuQvAVKpt9sCjcE4zkXJvCqZDQ==}
 
-  '@fungi.computer/caps@0.12.1':
-    resolution: {integrity: sha512-DpixTGZ00ANDFgnXlzla5fW1N26jG7oeDakpByxMn864gya4KP1YPVCccB6Ujg5aTYHDRJmRWPDr84UAnpLl+w==}
+  '@fungi.computer/caps@0.12.2':
+    resolution: {integrity: sha512-VX5hrTBb3enLMmiYwp7uFMhmaRabFJRQud8nIZddNDNb/SM1wwv4+TSBidJJhE2CELU2LV749yEz0NH49rH65g==}
     peerDependencies:
       '@tanstack/react-form': ^1.33.2
       effect: 4.0.2
@@ -5390,7 +5390,7 @@ snapshots:
 
   '@fungi.computer/capnweb@0.12.0-fungi.0': {}
 
-  '@fungi.computer/caps@0.12.1(@tanstack/react-form@1.33.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@fungi.computer/caps@0.12.2(@tanstack/react-form@1.33.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@fungi.computer/stipe': 0.1.1
