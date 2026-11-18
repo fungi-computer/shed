@@ -1,5 +1,28 @@
 # @fungi.computer/shed
 
+## 0.10.0
+
+### Minor Changes
+
+- Changes since 0.9.1:
+
+  - fix(shed): let a key's run take a requestId, and repin the Trellis template
+    digests
+  - fix(shed): leave run's input unchanged so the pinned Trellis template
+    digests hold
+  - feat(shed): observe and listProcesses report processes as RunObservation
+  - feat(shed): start, stop, read logs and restart processes for a
+    Computer-scoped key
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.22.0
+  - @fungi.computer/caps@0.12.1
+  - @fungi.computer/braid@0.5.2
+  - @fungi.computer/computer-contract@0.5.6
+
 ## 0.9.1
 
 ### Patch Changes

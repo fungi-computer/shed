@@ -10,7 +10,22 @@ Shed is one of the starter Apps of
 on your own Cloudflare account. On Oyster, the Computer is a Linux workspace in
 a Cloudflare Container; Shed runs commands there, not on your laptop.
 
-## What you can do
+## Quick start
+
+In a Fungi monorepo checkout with dependencies installed, run the component
+workbench from the root:
+
+```sh
+pnpm workbench:prepare
+pnpm exec ladle serve --port 61983
+```
+
+Open <http://localhost:61983/?story=shed--workspace&mode=preview&theme=light>.
+This is Shed's real UI with local fixture data (a local Computer fixture; typed
+input echoes and no commands run), not a live Oyster. To run Shed on a real
+Oyster, see [Get it](#get-it).
+
+## Common tasks
 
 - Type commands at an instant light prompt (`ls`, `rg TODO`, `jq . package.json`
   and the like). A command that needs a real Linux process, such as `npm`,
@@ -28,7 +43,9 @@ stops and do not come back when it starts. Closing Shed does not stop a process.
 
 <img alt="Shed on a phone in the light theme: the light shell prompt in /workspace with the footer controls below" src="docs/media/terminal-phone.png" width="300">
 
-## Get it
+## Reference
+
+### Get it
 
 Shed installs with the other starter Apps. On a deployed Oyster (see the
 [Oyster quick start](https://github.com/fungi-computer/oyster#deploy-to-cloudflare)),
@@ -51,7 +68,7 @@ registrable site from the owner sign-in. Without it, **Ports** still exposes and
 removes ports and says that previews are off. Reopen old preview links from the
 Ports tray.
 
-## Change it
+### Change it
 
 Every installed App is also a template you can fork on your own Oyster. Fork
 Shed into a Bonsai repository and clone it with ordinary `git`:
@@ -74,7 +91,7 @@ your forks with `--repositories <base URL>` and `--ref <branch or tag>`. The
 installer reads all seven starter Apps from that base, so fork them under one
 account.
 
-## Agent tools
+### Agent tools
 
 Agents call Shed through Oyster's MCP endpoint, or at
 `POST $OYSTER_URL/apps/shed/methods/<name>` with a key; see
@@ -83,25 +100,33 @@ Agents call Shed through Oyster's MCP endpoint, or at
 | Method                                    | What it does                                                                                                                                                                                                                                                                   |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `runCommand({command, cwd?, timeoutMs?})` | Runs a shell command for up to 45 seconds. Returns `stdout`, `stderr`, `exitCode`, `stdoutTruncated` and `stderrTruncated` (64 KiB per stream), or `{ error: code }`. A budget refusal also supplies `kind` and `retryAfterMs`. Workflow Git commands use `$FUNGI_GIT_REMOTE`. |
-| `listProcesses({})`                       | Lists up to 64 processes on the Computer. Starts nothing.                                                                                                                                                                                                                      |
+| `listProcesses({})`                       | Lists up to 64 processes on the Computer. Each row says `controllable`: true when you started it, so `stop`, `restart` and `logs` by id accept it. Each row also carries `run`, the same run `observe` returns, with no log position. Starts nothing.                          |
 | `listPorts({})`                           | Lists up to 64 forwarded ports. Starts nothing.                                                                                                                                                                                                                                |
 
-Workflows (see [Trellis](https://github.com/fungi-computer/trellis)) use a
-second set for longer work:
+Workflows (see [Trellis](https://github.com/fungi-computer/trellis)) and an
+outside server holding a key scoped to one Computer use a second set for longer
+work:
 
-| Method                        | What it does                                                                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `run({command, cwd})`         | Starts one process, logs its output under `/workspace/.fungi/runs/`, and waits until it exits. A retry reuses the same process. |
-| `start` / `stop`              | Start a process without waiting for it, or stop one.                                                                            |
-| `logs({run, offset, length})` | Reads up to 128 KiB of a run's log.                                                                                             |
-| `expose({port})`              | Returns a preview URL for a port that is already exposed.                                                                       |
+| Method                                      | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run({command, cwd, requestId?})`           | Starts one process, logs its output under `/workspace/.fungi/runs/`, and waits until it exits. A retry reuses the same process.                                                                                                                                                                                                                                                                                                                                                        |
+| `start({command, cwd?, port?, requestId?})` | Starts a process without waiting for it. The same `requestId` with the same input returns the same process; changed input is a `conflict`. A Workflow's own key wins over `requestId`.                                                                                                                                                                                                                                                                                                 |
+| `observe({id, cursor?})`                    | Reads one process as a run: `state`, `reason`, times, `outputs` and `cost`, which is always `null` because nothing is metered. A process you stopped reads `cancelled`; one the Computer ended by sleeping reads `failed` with reason `computer_slept`; one the Computer cannot check reads `unknown`. For a process you started it also returns `log: { cursor, size, eof }`: send the `cursor` back to move up to 128 KiB along the log until `eof`, and read the bytes with `logs`. |
+| `stop({id})`                                | Stops a process you started. Another caller's process, such as one started in the Shed window, answers `not_found`.                                                                                                                                                                                                                                                                                                                                                                    |
+| `logs({id, offset, length})`                | Reads up to 128 KiB of the log of a process you started. `logs({run, ...})` still names a log by the call key.                                                                                                                                                                                                                                                                                                                                                                         |
+| `restart({id, requestId})`                  | Stops a process you started and starts its command, directory and port again as a new process whose `parentId` is the old one. It answers pending until the old process has exited; retry with the same `requestId`. A process started before Shed recorded ports cannot be restarted: start it again.                                                                                                                                                                                 |
+| `expose({port})`                            | Returns a preview URL for a port that is already exposed.                                                                                                                                                                                                                                                                                                                                                                                                                              |
+
+A key calls these over MCP with no host idempotency key, so it names its own
+`requestId`. Revoking the key refuses its next `stop`, `restart` and `logs`
+call. Processes it started keep running until the owner stops them.
 
 A workflow step can be given push or read access to one repository. Its command
 then finds a credential-free remote in `$FUNGI_GIT_REMOTE`, for example
 `git push "$FUNGI_GIT_REMOTE" HEAD:refs/heads/main`. Arguments never choose the
 Computer; the host does.
 
-## Build and check
+### Build and check
 
 Shed is a React App built with Vite. Its terminal renders with Ghostty and its
 controls come from [Caps](https://github.com/fungi-computer/caps).
@@ -120,11 +145,11 @@ prompt, [src/terminal-panel.tsx](src/terminal-panel.tsx) the full terminal, and
 agent tools are in [backend/methods.ts](backend/methods.ts), and
 [package.json](package.json) declares the permissions the App asks for.
 
-## License
+### License
 
 MIT. See [LICENSE](LICENSE).
 
-## Local film replay
+### Local film replay
 
 `TerminalPanel` optionally accepts `onTerminalReady(handle)` after Ghostty and
 its font metrics are ready. The typed `TerminalFilmHandle` exposes `write`,

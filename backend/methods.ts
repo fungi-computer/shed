@@ -3,8 +3,11 @@ import { processesGill } from "./gills.js";
 import {
   processPageInputSchema,
   processPageSchema,
+  processInventorySchema,
   pageProcesses,
 } from "./process-page.js";
+import { observeProcess } from "./observation.js";
+import { runObservationSchema } from "@fungi.computer/agar/run-observation";
 import * as z from "zod";
 import { Base64 } from "effect/encoding";
 import { computerPortInputSchema } from "@fungi.computer/computer-contract";
@@ -13,6 +16,7 @@ import {
   computerCall,
   shedRunCommandInputSchema,
   shedRunInputSchema,
+  shedRequestIdSchema,
   shedStartInputSchema,
   type ShedComputer,
   type ShedRuns,
@@ -38,6 +42,7 @@ const command = runCommandInputSchema;
 const refusal = shedComputerRefusalSchema;
 const portsReply = z.union([computerPortsOutputSchema, refusal]);
 const processesReply = z.union([processPageSchema, refusal]);
+const inventoryReply = z.union([processInventorySchema, refusal]);
 const commandReply = runCommandResultSchema;
 /** Only scoped inventory and execution bindings enter this runtime-neutral definition. */
 export type ShedMethodContext = Readonly<{
@@ -69,6 +74,13 @@ const bytes = z.strictObject({
   encoding: z.literal("base64"),
   truncated: z.boolean(),
 });
+/**
+ * The Computer binding takes its replay key from the host when the host
+ * attested one. Only a caller the host attested none for, such as a key over
+ * MCP, sends its own request id along.
+ */
+const nativeRequestId = (hostKey: string | undefined, requestKey: string) =>
+  hostKey === undefined ? requestKey : undefined;
 /** The script's command lines, without blanks and comments. */
 const commandLines = (command: string) =>
   command
@@ -85,6 +97,28 @@ const scriptLength = (command: string) => {
   const lines = commandLines(command).length;
   return lines > 1 ? [`${String(lines)} commands`] : [];
 };
+
+const maximumLogWindow = 131072;
+/** One bounded read of a log, checked against what was asked for. */
+async function readLogWindow(
+  computer: ShedMethodContext["env"]["COMPUTER"],
+  path: string,
+  offset: number,
+  length: number,
+) {
+  const reply = bytes.parse(
+    await computer.read({ path, byteOffset: offset, byteLength: length }),
+  );
+  const decoded = Base64.decode(reply.content);
+  if (
+    reply.path !== path ||
+    reply.byteOffset !== offset ||
+    decoded._tag === "Failure" ||
+    decoded.success.byteLength > length
+  )
+    throw new Error("Invalid Computer log reply");
+  return { reply, byteLength: decoded.success.byteLength };
+}
 
 export const appBackend = defineAppBackend<ShedMethodContext>({
   gills: [processesGill],
@@ -107,44 +141,95 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
     }),
     logs: defineAppMethod({
       description:
-        "Read up to 128 KiB from a run log, identified by its host call key; offsets and lengths are bytes.",
+        "Read up to 128 KiB from a log, identified by the process id this caller started or by its host call key; offsets and lengths are bytes.",
       effect: "read",
       requires: ["computer.readFile"],
-      input: z.strictObject({
-        run: z.string().min(1).max(128),
-        offset: z.number().int().nonnegative().default(0),
-        length: z.number().int().min(1).max(131072).default(131072),
-      }),
+      input: z
+        .strictObject({
+          run: z.string().min(1).max(128).optional(),
+          id: processIdInputSchema.shape.id.optional(),
+          offset: z.number().int().nonnegative().default(0),
+          length: z.number().int().min(1).max(131072).default(131072),
+        })
+        .check(
+          z.refine(
+            (input) => (input.run === undefined) !== (input.id === undefined),
+            "Name the log by run or by id, not both",
+          ),
+        ),
       output: z.union([
-        bytes.extend({ run: z.string() }),
+        bytes.extend({
+          run: z.string().optional(),
+          id: processIdInputSchema.shape.id.optional(),
+        }),
         z.strictObject({ error: z.enum(["not_found", "ambiguous"]) }),
       ]),
       handler: async (input, context: ShedMethodContext, caller) => {
         if (!caller.computerId || !context.runs)
           throw new Error("Computer file access is not granted");
-        const log = context.runs.logPath(
-          input.run,
-          caller.computerId,
-          caller.actor,
-        );
+        const log =
+          input.id !== undefined
+            ? context.runs.logPathById(
+                input.id,
+                caller.computerId,
+                caller.actor,
+              )
+            : input.run === undefined
+              ? ({ error: "not_found" } as const)
+              : context.runs.logPath(
+                  input.run,
+                  caller.computerId,
+                  caller.actor,
+                );
         if ("error" in log) return log;
-        const path = log.path;
-        const reply = bytes.parse(
-          await context.env.COMPUTER.read({
-            path,
-            byteOffset: input.offset,
-            byteLength: input.length,
-          }),
+        const { reply } = await readLogWindow(
+          context.env.COMPUTER,
+          log.path,
+          input.offset,
+          input.length,
         );
-        const decoded = Base64.decode(reply.content);
-        if (
-          reply.path !== path ||
-          reply.byteOffset !== input.offset ||
-          decoded._tag === "Failure" ||
-          decoded.success.byteLength > input.length
-        )
-          throw new Error("Invalid Computer log reply");
-        return { ...reply, run: input.run };
+        return input.id === undefined
+          ? { ...reply, run: input.run }
+          : { ...reply, id: input.id };
+      },
+    }),
+    observe: defineAppMethod({
+      description:
+        "Read one process on the attached Computer as a run: its state, why, times, outputs and, for a process this caller started, a log position. Pass the returned log cursor back to advance up to 128 KiB along the log until eof, and read the bytes with logs. Cost is null: no process is metered. Starts nothing.",
+      effect: "read",
+      requires: ["computer.execute", "computer.readFile"],
+      input: z.strictObject({
+        id: processIdInputSchema.shape.id,
+        cursor: z.number().int().nonnegative().default(0),
+      }),
+      output: z.union([runObservationSchema, refusal]),
+      handler: async (input, context: ShedMethodContext, caller) => {
+        if (caller.computerId === null)
+          return refusal.parse({ error: "not_granted" });
+        const inventory = inventoryReply.parse(
+          await computerCall(() => context.env.COMPUTER.processes({})),
+        );
+        if ("error" in inventory) return inventory;
+        const process = inventory.processes.find(
+          (item) => item.id === input.id,
+        );
+        if (process === undefined) return refusal.parse({ error: "not_found" });
+        const record =
+          context.runs?.recordById(input.id, caller.computerId, caller.actor) ??
+          null;
+        if (record === null) return observeProcess(process, null, null);
+        const { reply, byteLength } = await readLogWindow(
+          context.env.COMPUTER,
+          record.logPath,
+          input.cursor,
+          maximumLogWindow,
+        );
+        const cursor = input.cursor + byteLength;
+        return observeProcess(process, record, {
+          cursor,
+          size: cursor,
+          eof: !reply.truncated,
+        });
       },
     }),
     start: defineAppMethod({
@@ -166,17 +251,57 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
         const computer = context.env.COMPUTER;
         if (!caller.computerId || !context.runs)
           throw new Error("Computer access is not granted");
-        if (!caller.idempotencyKey)
+        const requestKey = caller.idempotencyKey ?? input.requestId;
+        if (!requestKey)
           throw new Error(
-            "A host idempotency key is required to start a process",
+            "A request id or host idempotency key is required to start a process",
           );
         const { processStart, processes } = computer;
         return context.runs.start(
           input,
           caller.computerId,
-          caller.idempotencyKey,
+          requestKey,
           caller.actor,
           { processStart, processes },
+          nativeRequestId(caller.idempotencyKey, requestKey),
+        );
+      },
+    }),
+    restart: defineAppMethod({
+      description:
+        "Stop a process this caller started and start its recorded command, directory and port again as a new process linked to it by parentId. Send the same requestId to retry.",
+      effect: "write",
+      requires: ["computer.execute"],
+      pending: true,
+      input: processIdInputSchema.extend({
+        requestId: shedRequestIdSchema.optional(),
+      }),
+      output: z.union([
+        z.strictObject({
+          process: computerProcessSchema,
+          logPath: z.string(),
+          port: computerPortInputSchema.shape.port.optional(),
+          parentId: processIdInputSchema.shape.id,
+        }),
+        refusal,
+      ]),
+      handler: (input, context: ShedMethodContext, caller) => {
+        const computer = context.env.COMPUTER;
+        if (!caller.computerId || !context.runs)
+          throw new Error("Computer access is not granted");
+        const requestKey = caller.idempotencyKey ?? input.requestId;
+        if (!requestKey)
+          throw new Error(
+            "A request id or host idempotency key is required to restart a process",
+          );
+        const { processStart, processes, processKill } = computer;
+        return context.runs.restart(
+          input.id,
+          caller.computerId,
+          requestKey,
+          caller.actor,
+          { processStart, processes, processKill },
+          nativeRequestId(caller.idempotencyKey, requestKey),
         );
       },
     }),
@@ -191,11 +316,14 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
           throw new Error("Computer access is not granted");
         if (!context.runs?.owns(input.id, caller.computerId, caller.actor))
           return refusal.parse({ error: "not_found" });
-        return z
+        const reply = z
           .union([processKillOutputSchema, refusal])
           .parse(
             await computerCall(() => context.env.COMPUTER.processKill(input)),
           );
+        if ("signalled" in reply && reply.signalled)
+          context.runs.recordStop(input.id, caller.computerId, caller.actor);
+        return reply;
       },
     }),
     run: defineAppMethod({
@@ -240,14 +368,18 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
         if (!caller.computerId || !context.runs)
           throw new Error("Computer access is not granted");
         const { processStart, processes } = computer;
-        if (!caller.idempotencyKey)
-          throw new Error("A host idempotency key is required to start a run");
+        const requestKey = caller.idempotencyKey ?? input.requestId;
+        if (!requestKey)
+          throw new Error(
+            "A request id or host idempotency key is required to start a run",
+          );
         return context.runs.run(
           input,
           caller.computerId,
-          caller.idempotencyKey,
+          requestKey,
           caller.actor,
           { processStart, processes },
+          nativeRequestId(caller.idempotencyKey, requestKey),
         );
       },
     }),
@@ -281,12 +413,18 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
           input.after.computerId !== caller.computerId
         )
           return refusal.parse({ error: "invalid" });
-        const inventory = processesReply.parse(
+        const inventory = inventoryReply.parse(
           await computerCall(() => context.env.COMPUTER.processes({})),
         );
         return "error" in inventory
           ? inventory
-          : pageProcesses(inventory, input, caller.computerId);
+          : pageProcesses(
+              inventory,
+              input,
+              caller.computerId,
+              context.runs?.ownedRecords(caller.computerId, caller.actor) ??
+                new Map(),
+            );
       },
     }),
     runCommand: defineAppMethod({

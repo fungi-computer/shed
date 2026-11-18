@@ -11,8 +11,11 @@ import {
   maximumProcessRecords,
   processStartInputSchema,
   processListOutputSchema,
+  processKillOutputSchema,
+  type processIdInputSchema,
   type ComputerProcess,
 } from "@fungi.computer/computer-contract";
+import type { ShedProcessRecord } from "./observation.js";
 import {
   runCommandInputSchema,
   runCommandResultSchema,
@@ -23,13 +26,20 @@ const processInputSchema = processStartInputSchema.omit({
   requestId: true,
   requestScope: true,
 });
+/**
+ * The caller's replay key when the host supplies none, as for an external key
+ * over MCP or HTTP. A host-attested key always wins.
+ */
+export const shedRequestIdSchema = processStartInputSchema.shape.requestId;
 export const shedRunInputSchema = processInputSchema
   .omit({ port: true })
   .extend({
     gitAccess: resolvedGitAccessSchema.optional(),
+    requestId: shedRequestIdSchema.optional(),
   });
 export const shedStartInputSchema = processInputSchema.extend({
   gitAccess: resolvedGitAccessSchema.optional(),
+  requestId: shedRequestIdSchema.optional(),
 });
 export type ShedStartInput = z.output<typeof shedStartInputSchema>;
 export type ShedRunInput = z.output<typeof shedRunInputSchema>;
@@ -46,9 +56,17 @@ export type ShedComputer = Readonly<{
     command: string;
     cwd?: string | undefined;
     port?: number | undefined;
+    requestId?: string | undefined;
   }): Promise<z.core.util.JSONType>;
   processes(input: Record<string, never>): Promise<z.core.util.JSONType>;
 }>;
+/** Restart also signals the process it replaces. */
+type ShedRestartComputer = ShedComputer &
+  Readonly<{
+    processKill(
+      input: z.output<typeof processIdInputSchema>,
+    ): Promise<z.core.util.JSONType>;
+  }>;
 
 const bindingNotGranted = z.object({
   code: z.literal("binding_not_granted"),
@@ -77,7 +95,20 @@ const rowSchema = z.strictObject({
   exitCode: z.number().int().nullable(),
   logPath: z.string(),
   gitAccess: z.string().nullable(),
+  /**
+   * The declared port: 0 when the process declared none, null for a row written
+   * before ports were recorded, which cannot be restarted.
+   */
+  port: z.number().int().nonnegative().nullable(),
+  /** The process this one restarted, when it is a restart. */
+  parentId: z.string().nullable(),
+  /**
+   * When Shed signalled this process to stop for its caller, null for a row
+   * written before stops were recorded and for a process nobody stopped.
+   */
+  stoppedAt: z.number().int().nullable(),
 });
+type Mode = "start" | "run" | "restart";
 export const shedRunCommandInputSchema = runCommandInputSchema.extend({
   gitAccess: resolvedGitAccessSchema.optional(),
 });
@@ -122,7 +153,7 @@ export async function runShedCommand(
   });
 }
 
-function claimKey(actor: HostActor, method: "start" | "run", key: string) {
+function claimKey(actor: HostActor, method: Mode, key: string) {
   return JSON.stringify([actor, method, key]);
 }
 const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
@@ -146,8 +177,26 @@ export function createShedRuns(sql: ShedSql) {
   // disposable, so it is dropped, never read, copied or migrated.
   sql.exec("DROP TABLE IF EXISTS shed_process_claims");
   sql.exec(
-    "CREATE TABLE IF NOT EXISTS shed_native_process_claims (requestKey TEXT PRIMARY KEY, computerId TEXT NOT NULL, command TEXT NOT NULL, cwd TEXT, processId TEXT, phase TEXT NOT NULL, startedAt INTEGER, exitCode INTEGER, logPath TEXT NOT NULL, gitAccess TEXT)",
+    "CREATE TABLE IF NOT EXISTS shed_native_process_claims (requestKey TEXT PRIMARY KEY, computerId TEXT NOT NULL, command TEXT NOT NULL, cwd TEXT, processId TEXT, phase TEXT NOT NULL, startedAt INTEGER, exitCode INTEGER, logPath TEXT NOT NULL, gitAccess TEXT, port INTEGER, parentId TEXT, stoppedAt INTEGER)",
   );
+  // Rows written before ports and restarts were recorded keep their data: the
+  // columns are added in place, never reset, and stay null on those rows.
+  const columns = new Set(
+    z
+      .array(z.object({ name: z.string() }))
+      .parse(
+        sql.exec("PRAGMA table_info(shed_native_process_claims)").toArray(),
+      )
+      .map((column) => column.name),
+  );
+  if (!columns.has("port"))
+    sql.exec("ALTER TABLE shed_native_process_claims ADD COLUMN port INTEGER");
+  if (!columns.has("parentId"))
+    sql.exec("ALTER TABLE shed_native_process_claims ADD COLUMN parentId TEXT");
+  if (!columns.has("stoppedAt"))
+    sql.exec(
+      "ALTER TABLE shed_native_process_claims ADD COLUMN stoppedAt INTEGER",
+    );
   sql.exec(
     "CREATE TABLE IF NOT EXISTS shed_retired_claim_keys (requestKey TEXT PRIMARY KEY)",
   );
@@ -165,11 +214,7 @@ export function createShedRuns(sql: ShedSql) {
         .toArray().length !== 0
     );
   }
-  function scopeRows(
-    actor: HostActor,
-    mode: "start" | "run",
-    computerId: string,
-  ) {
+  function scopeRows(actor: HostActor, mode: Mode, computerId: string) {
     return z
       .array(rowSchema)
       .parse(
@@ -183,7 +228,7 @@ export function createShedRuns(sql: ShedSql) {
           .toArray(),
       );
   }
-  function retire(requestKey: string, actor: HostActor, mode: "start" | "run") {
+  function retire(requestKey: string, actor: HostActor, mode: Mode) {
     // Record rejection first, so an interruption cannot turn a retired key into a new start.
     sql.exec(
       "INSERT OR IGNORE INTO shed_retired_claim_keys (requestKey) VALUES (?)",
@@ -204,7 +249,7 @@ export function createShedRuns(sql: ShedSql) {
   }
   function trimScope(
     actor: HostActor,
-    mode: "start" | "run",
+    mode: Mode,
     computerId: string,
     current: string,
   ) {
@@ -224,7 +269,7 @@ export function createShedRuns(sql: ShedSql) {
   }
   async function refreshScope(
     actor: HostActor,
-    mode: "start" | "run",
+    mode: Mode,
     computerId: string,
     computer: ShedComputer,
   ) {
@@ -274,17 +319,19 @@ export function createShedRuns(sql: ShedSql) {
     prior: z.output<typeof rowSchema>,
     input: ShedRunInput,
     computerId: string,
+    parentId: string | null,
   ) {
     if (
       prior.computerId !== computerId ||
       prior.command !== input.command ||
       prior.cwd !== (input.cwd ?? null) ||
+      prior.parentId !== parentId ||
       prior.gitAccess !==
         (input.gitAccess === undefined ? null : JSON.stringify(input.gitAccess))
     )
       throw new AppMethodRefusal(
         "conflict",
-        "Run identity conflicts with its original command, Git scope or Computer",
+        "Run identity conflicts with its original command, Git scope, Computer or restarted process",
       );
   }
   async function claim(
@@ -293,9 +340,11 @@ export function createShedRuns(sql: ShedSql) {
     rawKey: string,
     actor: HostActor,
     computer: ShedComputer,
-    mode: "start" | "run",
+    mode: Mode,
+    parentId: string | null = null,
+    nativeRequestId?: string,
   ) {
-    if (actor.kind !== "member")
+    if (actor.kind === "agent")
       return shedComputerRefusalSchema.parse({ error: "not_granted" });
     const requestKey = claimKey(actor, mode, rawKey);
     if (retired(requestKey))
@@ -317,10 +366,16 @@ export function createShedRuns(sql: ShedSql) {
       };
       if (input.cwd !== undefined) processInput.cwd = input.cwd;
       if (input.port !== undefined) processInput.port = input.port;
-      return { start: processInputSchema.parse(processInput), logPath };
+      // The host's own key reaches the binding first; the caller's request id
+      // goes along only when the host attested none, as for an external key.
+      const start: z.output<typeof processInputSchema> & {
+        requestId?: string;
+      } = processInputSchema.parse(processInput);
+      if (nativeRequestId !== undefined) start.requestId = nativeRequestId;
+      return { start, logPath };
     }
     async function dispatch(
-      start: z.output<typeof processInputSchema>,
+      start: z.output<typeof processInputSchema> & { requestId?: string },
       logPath: string,
     ) {
       starting.set(requestKey, input.port ?? null);
@@ -346,7 +401,7 @@ export function createShedRuns(sql: ShedSql) {
     const gitAccess =
       input.gitAccess === undefined ? null : JSON.stringify(input.gitAccess);
     async function resume(prior: z.output<typeof rowSchema>) {
-      verify(prior, input, computerId);
+      verify(prior, input, computerId, parentId);
       if (prior.phase === "starting") {
         const activePort = starting.get(requestKey);
         if (activePort !== undefined) {
@@ -358,7 +413,7 @@ export function createShedRuns(sql: ShedSql) {
           return pending(5000);
         }
         // The host binding retains this call's native idempotency key across retries.
-        if (mode === "start") {
+        if (mode !== "run") {
           const prepared = prepare();
           return dispatch(prepared.start, prior.logPath);
         }
@@ -385,29 +440,93 @@ export function createShedRuns(sql: ShedSql) {
     if (prior) return resume(prior);
     const { start, logPath } = prepare();
     sql.exec(
-      "INSERT INTO shed_native_process_claims (requestKey,computerId,command,cwd,phase,logPath,gitAccess) VALUES (?,?,?,?,'starting',?,?)",
+      "INSERT INTO shed_native_process_claims (requestKey,computerId,command,cwd,phase,logPath,gitAccess,port,parentId) VALUES (?,?,?,?,'starting',?,?,?,?)",
       requestKey,
       computerId,
       input.command,
       input.cwd ?? null,
       logPath,
       gitAccess,
+      input.port ?? 0,
+      parentId,
     );
     return dispatch(start, logPath);
   }
+  function recordOf(row: z.output<typeof rowSchema>): ShedProcessRecord {
+    return {
+      parentId: row.parentId,
+      stoppedAt: row.stoppedAt,
+      logPath: row.logPath,
+    };
+  }
+  /** The caller's own latest record of one process; agents never own one. */
+  function ownedRow(processId: string, computerId: string, actor: HostActor) {
+    if (actor.kind === "agent") return null;
+    const row = sql
+      .exec(
+        "SELECT * FROM shed_native_process_claims WHERE processId=? AND computerId=? AND json_extract(requestKey,'$[0]')=? ORDER BY rowid DESC LIMIT 1",
+        processId,
+        computerId,
+        JSON.stringify(actor),
+      )
+      .toArray()[0];
+    return row === undefined ? null : rowSchema.parse(row);
+  }
+  /** Notes that the Computer accepted a stop signal for this caller's process. */
+  function recordStop(processId: string, computerId: string, actor: HostActor) {
+    const row = ownedRow(processId, computerId, actor);
+    if (row === null) return;
+    sql.exec(
+      "UPDATE shed_native_process_claims SET stoppedAt=COALESCE(stoppedAt,?) WHERE requestKey=?",
+      Date.now(),
+      row.requestKey,
+    );
+  }
   return {
     owns(processId: string, computerId: string, actor: HostActor) {
-      if (actor.kind !== "member") return false;
-      return (
-        sql
-          .exec(
-            "SELECT requestKey FROM shed_native_process_claims WHERE processId=? AND computerId=? AND json_extract(requestKey,'$[0]')=?",
-            processId,
-            computerId,
-            JSON.stringify(actor),
+      return ownedRow(processId, computerId, actor) !== null;
+    },
+    /** The processes this caller started on the Computer, by process id. */
+    ownedRecords(
+      computerId: string,
+      actor: HostActor,
+    ): ReadonlyMap<string, ShedProcessRecord> {
+      if (actor.kind === "agent") return new Map();
+      return new Map(
+        z
+          .array(rowSchema)
+          .parse(
+            sql
+              .exec(
+                "SELECT * FROM shed_native_process_claims WHERE processId IS NOT NULL AND computerId=? AND json_extract(requestKey,'$[0]')=? ORDER BY rowid ASC",
+                computerId,
+                JSON.stringify(actor),
+              )
+              .toArray(),
           )
-          .toArray().length !== 0
+          .flatMap((row) =>
+            row.processId === null ? [] : [[row.processId, recordOf(row)]],
+          ),
       );
+    },
+    /** What Shed recorded of a process this caller started, or null. */
+    recordById(
+      processId: string,
+      computerId: string,
+      actor: HostActor,
+    ): ShedProcessRecord | null {
+      const row = ownedRow(processId, computerId, actor);
+      return row === null ? null : recordOf(row);
+    },
+    recordStop,
+    /** A log named by the process this caller started, not by the call key. */
+    logPathById(
+      processId: string,
+      computerId: string,
+      actor: HostActor,
+    ): { path: string } | { error: "not_found" } {
+      const row = ownedRow(processId, computerId, actor);
+      return row === null ? { error: "not_found" } : { path: row.logPath };
     },
     logPath(
       rawKey: string,
@@ -430,8 +549,78 @@ export function createShedRuns(sql: ShedSql) {
       requestKey: string,
       actor: HostActor,
       computer: ShedComputer,
+      nativeRequestId?: string,
     ) {
-      return claim(input, computerId, requestKey, actor, computer, "start");
+      return claim(
+        input,
+        computerId,
+        requestKey,
+        actor,
+        computer,
+        "start",
+        null,
+        nativeRequestId,
+      );
+    },
+    /**
+     * Stop one of this caller's processes and start its recorded command, cwd
+     * and port as a new process linked by `parentId`. The request id replays
+     * the new process; the replaced one is signalled only before that claim.
+     */
+    async restart(
+      processId: z.output<typeof processIdInputSchema>["id"],
+      computerId: string,
+      requestKey: string,
+      actor: HostActor,
+      computer: ShedRestartComputer,
+      nativeRequestId?: string,
+    ) {
+      if (actor.kind === "agent")
+        return shedComputerRefusalSchema.parse({ error: "not_granted" });
+      const parent = ownedRow(processId, computerId, actor);
+      if (parent === null || retired(claimKey(actor, "restart", requestKey)))
+        return shedComputerRefusalSchema.parse({ error: "not_found" });
+      // No recorded port (an older row) or a Git scope cannot be replayed faithfully.
+      if (parent.port === null || parent.gitAccess !== null)
+        return shedComputerRefusalSchema.parse({ error: "invalid" });
+      if (read(claimKey(actor, "restart", requestKey)) === null) {
+        const inventory = await computerCall(() => computer.processes({}));
+        const refused = shedComputerRefusalSchema.safeParse(inventory);
+        if (refused.success) return refused.data;
+        const current = processListOutputSchema
+          .parse(inventory)
+          .processes.find((item) => item.id === processId);
+        if (current?.state === "uncertain")
+          return shedComputerRefusalSchema.parse({ error: "unavailable" });
+        if (current?.state === "running") {
+          const reply = await computerCall(() =>
+            computer.processKill({ id: processId }),
+          );
+          const denied = shedComputerRefusalSchema.safeParse(reply);
+          if (denied.success) return denied.data;
+          // The new process may need the old one's port: wait for its exit.
+          const stopped = processKillOutputSchema.parse(reply);
+          if (stopped.signalled) recordStop(processId, computerId, actor);
+          if (stopped.process.state !== "exited")
+            return stopped.signalled
+              ? pending(1000)
+              : shedComputerRefusalSchema.parse({ error: "unavailable" });
+        }
+      }
+      const input: ShedStartInput = { command: parent.command };
+      if (parent.cwd !== null) input.cwd = parent.cwd;
+      if (parent.port !== 0) input.port = parent.port;
+      const result = await claim(
+        input,
+        computerId,
+        requestKey,
+        actor,
+        computer,
+        "restart",
+        processId,
+        nativeRequestId,
+      );
+      return "process" in result ? { ...result, parentId: processId } : result;
     },
     async run(
       input: ShedRunInput,
@@ -439,14 +628,15 @@ export function createShedRuns(sql: ShedSql) {
       requestKey: string,
       actor: HostActor,
       computer: ShedComputer,
+      nativeRequestId?: string,
     ) {
-      if (actor.kind !== "member")
+      if (actor.kind === "agent")
         return shedComputerRefusalSchema.parse({ error: "not_granted" });
       if (retired(claimKey(actor, "run", requestKey)))
         return shedComputerRefusalSchema.parse({ error: "not_found" });
       const prior = read(claimKey(actor, "run", requestKey));
       if (prior) {
-        verify(prior, input, computerId);
+        verify(prior, input, computerId, null);
         if (prior.phase === "exited")
           return completion(prior.exitCode, prior.logPath);
       }
@@ -457,6 +647,8 @@ export function createShedRuns(sql: ShedSql) {
         actor,
         computer,
         "run",
+        null,
+        nativeRequestId,
       );
       if ("kind" in result) return result;
       if ("error" in result) return result;
