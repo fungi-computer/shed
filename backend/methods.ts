@@ -9,6 +9,7 @@ import {
 import { observeProcess } from "./observation.js";
 import { runObservationSchema } from "@fungi.computer/agar/run-observation";
 import * as z from "zod";
+import { computerRefusalMessage } from "@fungi.computer/agar/computer-contracts";
 import { Base64 } from "effect/encoding";
 import { computerPortInputSchema } from "@fungi.computer/computer-contract";
 import {
@@ -348,7 +349,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
             ? {
                 id: "refused",
                 title: "Shed could not run the command",
-                detail: output.error,
+                detail: computerRefusalMessage(output.error),
                 tone: "error",
               }
             : {

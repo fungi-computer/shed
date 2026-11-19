@@ -83,3 +83,9 @@ export const runCommandResultSchema = z.union([
     error: z.literal("output_unavailable"),
   }),
 ]);
+
+/** A refusal `runCommand` returned instead of running the command. */
+export type RunCommandRefusal = Extract<
+  z.output<typeof runCommandResultSchema>,
+  { error: string }
+>;

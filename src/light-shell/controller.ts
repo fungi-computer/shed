@@ -1,5 +1,9 @@
 import type { ShellRoute } from "./shell-route.js";
-import { reportCaughtError, reportCatchFailure } from "../failure.js";
+import {
+  failureMessage,
+  reportCaughtError,
+  reportCatchFailure,
+} from "../failure.js";
 import type { LightRunInput, LightRunResult } from "./connector.js";
 import {
   LightDiscipline,
@@ -195,8 +199,17 @@ export class LightController {
           reportCaughtError(cause);
           return;
         }
-        reportCatchFailure("Could not run the command. Try again.", cause);
-        this.#apply(this.#discipline.fail("light"));
+        // The terminal line is this failure's one notice, so no toast.
+        reportCaughtError(cause);
+        this.#apply(
+          this.#discipline.fail(
+            "light",
+            failureMessage(
+              "The light shell could not run this command.",
+              cause,
+            ),
+          ),
+        );
       })
       .finally(() => {
         if (this.#abort === controller) {

@@ -252,13 +252,16 @@ export class LightDiscipline {
     );
   }
 
-  /** The light command or the full shell could not start. */
-  fail(kind: "light" | "full"): Step {
+  /**
+   * The light command or the full shell could not start. A light failure
+   * prints its cause, when the caller knows it, as its one notice.
+   */
+  fail(kind: "light" | "full", cause?: string): Step {
     this.#phase = "idle";
     const message =
       kind === "full"
         ? "The full shell could not start. Light commands still work."
-        : "The light shell could not run this command.";
+        : (cause ?? "The light shell could not run this command.");
     return this.#step(
       [committed(`${message}\r\n`), this.draw()],
       NONE,

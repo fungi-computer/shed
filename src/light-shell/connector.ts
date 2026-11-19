@@ -1,6 +1,7 @@
 import { AppError, type CapabilityDirectory } from "@fungi.computer/agar";
 import { appMethods } from "@fungi.computer/agar/backend";
 import { bareNavigationCommand } from "./shell-route.js";
+import { ComputerDeclined } from "../failure.js";
 import {
   runCommandInputSchema,
   runCommandResultSchema,
@@ -76,11 +77,7 @@ export async function runLightCommand(
       code: "DISCONNECTED",
       retryable: true,
     });
-  if ("error" in result)
-    throw new AppError(`The Computer declined this command: ${result.error}`, {
-      code: "CAPABILITY_DENIED",
-      retryable: result.error === "unavailable",
-    });
+  if ("error" in result) throw new ComputerDeclined(result);
   return {
     stdout: result.stdout,
     stderr: result.stderr,

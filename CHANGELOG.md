@@ -1,5 +1,19 @@
 # @fungi.computer/shed
 
+## 0.10.8
+
+### Patch Changes
+
+- Changes since 0.10.7:
+
+  - fix(hub): keep released computer refusal shapes on the wire
+  - fix(apps): send named Computer refusals only to Apps that opt in
+  - fix(apps): name each Computer refusal in plain words
+
+- Updated dependencies
+  - @fungi.computer/agar@0.24.0
+  - @fungi.computer/braid@0.6.4
+
 ## 0.10.7
 
 ### Patch Changes
