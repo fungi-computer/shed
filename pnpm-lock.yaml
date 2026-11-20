@@ -35,8 +35,8 @@ importers:
         specifier: 0.12.3
         version: 0.12.3(@tanstack/react-form@1.33.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@fungi.computer/computer-contract':
-        specifier: 0.5.8
-        version: 0.5.8(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)
+        specifier: 0.5.9
+        version: 0.5.9(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)
       '@fungi.computer/gills':
         specifier: 0.4.0
         version: 0.4.0
@@ -868,8 +868,8 @@ packages:
     resolution: {integrity: sha512-vWCn2RbbBHzfSuSFAK2oD5Xh9p1vnhZKVC6oA4ppdSMTsuy3nYyhjFjefB/vxJjdUw8pT2B2+bZQpR+rTKTyNA==}
     engines: {node: '>=22'}
 
-  '@fungi.computer/computer-contract@0.5.8':
-    resolution: {integrity: sha512-ucDTzuz3GHvA7C0/C0z8uYBQH/0UJTZTnrSG6mlFCcacIkmemw5oajbluNxiIGpGKqGMjUhLowc1mT1D68cBig==}
+  '@fungi.computer/computer-contract@0.5.9':
+    resolution: {integrity: sha512-X29w2adVUVhGQ4k5fMQTVy1zAdGOVoq+pPDz5uxwyOWPisxKUm9jCfeigBz08YJluQxZxkk66XqlDl2i6sgrGA==}
 
   '@fungi.computer/forage@0.3.13':
     resolution: {integrity: sha512-1lo6BrgE+7PznJIB4tk11u9iZgkNKo/CGY5Fbb3JJKiwGun0UJT8EpW7ezoZ6HmrfFG2U3/FbSu/ToggogE+bw==}
@@ -877,8 +877,8 @@ packages:
   '@fungi.computer/gills@0.4.0':
     resolution: {integrity: sha512-EwnLo7pyZxx+Ci858qfkNNH6XkfIKCHH+TWsQ8QkQmgl44XAT7etaE2EHVAEEJm7YNY9QoFBSWuQHqlmkunO0g==}
 
-  '@fungi.computer/knapsack@0.4.21':
-    resolution: {integrity: sha512-CHcfB339l7w9VbliHLzBztGW7/CCFjLg61v0kkv67ZVQQlCgVFDIfPa+4k9/DbIpSrXT6xP0khP3/7P8WKpfPQ==}
+  '@fungi.computer/knapsack@0.4.22':
+    resolution: {integrity: sha512-10ywRsj/q8Tc9y5vmM7+irJ8G8h7eBfDW17OauMvmaoJFUXtY32vv/uz33j+2gXJ1Ic/nqOLiFnsBIqAL+kYug==}
 
   '@fungi.computer/maosaico@0.1.2':
     resolution: {integrity: sha512-Fk/SMTOJf9nUcozNVlchiDJZ+9mR+B1lw1LUY2h81HW+u5Bul+uSAf8Pz0qrTz5IRIu979zFS7thvSn342wHkg==}
@@ -5435,10 +5435,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@fungi.computer/computer-contract@0.5.8(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)':
+  '@fungi.computer/computer-contract@0.5.9(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)':
     dependencies:
       '@fungi.computer/cairn': 0.1.0
-      '@fungi.computer/knapsack': 0.4.21(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)
+      '@fungi.computer/knapsack': 0.4.22(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)
       zod: 4.4.3
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-node'
@@ -5472,7 +5472,7 @@ snapshots:
     dependencies:
       effect: 4.0.2
 
-  '@fungi.computer/knapsack@0.4.21(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)':
+  '@fungi.computer/knapsack@0.4.22(@aws-sdk/credential-provider-node@3.972.97)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.12.4)(ws@8.23.0)':
     dependencies:
       '@fungi.computer/cairn': 0.1.0
       '@fungi.computer/forage': 0.3.13(@types/json-schema@7.0.15)

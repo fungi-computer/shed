@@ -1,5 +1,11 @@
 # @fungi.computer/shed
 
+## 0.10.10
+
+### Patch Changes
+
+- @fungi.computer/computer-contract@0.5.9
+
 ## 0.10.9
 
 ### Patch Changes
