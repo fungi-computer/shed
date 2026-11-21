@@ -23,11 +23,11 @@ importers:
   .:
     dependencies:
       '@fungi.computer/agar':
-        specifier: 0.27.2
-        version: 0.27.2(@tanstack/react-query@5.102.8(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10)
+        specifier: 0.28.0
+        version: 0.28.0(@tanstack/react-query@5.102.8(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10)
       '@fungi.computer/braid':
-        specifier: 0.6.10
-        version: 0.6.10(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(@tanstack/react-query@5.102.8(react@18.3.1))(@types/json-schema@7.0.15)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(undici@8.13.0)(web-tree-sitter@0.25.10)(ws@8.23.0)
+        specifier: 0.6.11
+        version: 0.6.11(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(@tanstack/react-query@5.102.8(react@18.3.1))(@types/json-schema@7.0.15)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(undici@8.13.0)(web-tree-sitter@0.25.10)(ws@8.23.0)
       '@fungi.computer/cairn':
         specifier: 0.1.0
         version: 0.1.0
@@ -824,8 +824,8 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@fungi.computer/agar@0.27.2':
-    resolution: {integrity: sha512-67nqs9fkK524/mYsoPGMxxjkYt2+yZcHvDlF6j6bWXs9bwwqmeIi8/S1wgyv0nzKc0pQhyv6B29oa+9GPPflOg==}
+  '@fungi.computer/agar@0.28.0':
+    resolution: {integrity: sha512-IT2IajqOYQIJbSfdnWeAqWLSGokQDg+bHFF2CEAHouwdPIk9nmbA6syiv8ETh4qfqsiHiTt5lB0GsHNQ2viF8A==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       '@tanstack/react-query': ^5.102.8
@@ -844,8 +844,8 @@ packages:
   '@fungi.computer/approvals@0.2.6':
     resolution: {integrity: sha512-vfmN+4ktAOG0QIFuNSwV6bLtflwVQI4PDrv4vACLIiVwRPR1OagH50ht/hUfFVWcEFGKCP4e/9zf9lvCAfdnxg==}
 
-  '@fungi.computer/braid@0.6.10':
-    resolution: {integrity: sha512-Aa8M32Ulj8GRAg3ENX1zXfiYPe2KXnALaSygGfaOhw/CSHPnMCC+odMSRJC0JaBUpnEH0maLeTJZLm+FblTgjg==}
+  '@fungi.computer/braid@0.6.11':
+    resolution: {integrity: sha512-s1aVt4Zljxikosal9exoAz0Gary67q6bW67PzxhLdVFVr24ZHYwVJObxTn3jBrAypdtdeNFOgIFTurW4ZnrzKg==}
 
   '@fungi.computer/cairn@0.1.0':
     resolution: {integrity: sha512-BcxeFYqXSX1yikikAh9RerGAycT32oQpf+5EaiyolBn/aUJHwJjpGzoPdnVU+OEIq4xgDbVVtua6GHd2B5L/gg==}
@@ -5304,7 +5304,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@fungi.computer/agar@0.27.2(@tanstack/react-query@5.102.8(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10)':
+  '@fungi.computer/agar@0.28.0(@tanstack/react-query@5.102.8(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10)':
     dependencies:
       '@fungi.computer/approvals': 0.2.6
       '@fungi.computer/cairn': 0.1.0
@@ -5344,10 +5344,10 @@ snapshots:
     transitivePeerDependencies:
       - pg-native
 
-  '@fungi.computer/braid@0.6.10(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(@tanstack/react-query@5.102.8(react@18.3.1))(@types/json-schema@7.0.15)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(undici@8.13.0)(web-tree-sitter@0.25.10)(ws@8.23.0)':
+  '@fungi.computer/braid@0.6.11(@aws-sdk/credential-provider-node@3.972.97)(@smithy/signature-v4@5.7.5)(@tanstack/react-query@5.102.8(react@18.3.1))(@types/json-schema@7.0.15)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(undici@8.13.0)(web-tree-sitter@0.25.10)(ws@8.23.0)':
     dependencies:
       '@cfworker/json-schema': 4.1.1
-      '@fungi.computer/agar': 0.27.2(@tanstack/react-query@5.102.8(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10)
+      '@fungi.computer/agar': 0.28.0(@tanstack/react-query@5.102.8(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10)
       '@fungi.computer/almanac': 0.2.1
       '@fungi.computer/cairn': 0.1.0
       '@fungi.computer/gills': 0.4.0
