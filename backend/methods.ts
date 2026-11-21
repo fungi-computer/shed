@@ -128,6 +128,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       description:
         "Get an admitted preview URL for a port already exposed on the pinned Computer.",
       effect: "write",
+      label: "Open a preview of your app",
       requires: ["computer.execute"],
       input: computerPortInputSchema,
       output: preview,
@@ -237,6 +238,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       description:
         "Start one process on the pinned Computer and return its process and log path without waiting for exit.",
       effect: "write",
+      label: "Start a process on your Computer",
       requires: ["computer.execute"],
       pending: true,
       input: shedStartInputSchema,
@@ -272,6 +274,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       description:
         "Stop a process this caller started and start its recorded command, directory and port again as a new process linked to it by parentId. Send the same requestId to retry.",
       effect: "write",
+      label: "Restart a process on your Computer",
       requires: ["computer.execute"],
       pending: true,
       input: processIdInputSchema.extend({
@@ -309,6 +312,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
     stop: defineAppMethod({
       description: "Signal a retained process on the pinned Computer to stop.",
       effect: "write",
+      label: "Stop a process on your Computer",
       requires: ["computer.execute"],
       input: processIdInputSchema,
       output: z.union([processKillOutputSchema, refusal]),
@@ -331,6 +335,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       description:
         "Run one command on the pinned Computer, retaining a log and polling until it exits.",
       effect: "write",
+      label: "Run a command on your Computer",
       requires: ["computer.execute"],
       pending: true,
       input: shedRunInputSchema,
@@ -432,6 +437,7 @@ export const appBackend = defineAppBackend<ShedMethodContext>({
       description:
         "Run a shell command on the attached Computer. Use cwd to choose an absolute working directory. The timeout is at most 45 seconds. In a Workflow Git step, use $FUNGI_GIT_REMOTE for the repository. Returns stdout, stderr, exitCode and a truncation flag for each stream, or an error code if the command cannot return output. A nonzero exitCode indicates failure or cancellation. Output may be truncated.",
       effect: "write",
+      label: "Run a command on your Computer",
       requires: ["computer.execute"],
       input: shedRunCommandInputSchema,
       output: commandReply,
