@@ -134,11 +134,7 @@ export class LightController {
     // Reconnect quietly so the next full command is warm. No banner, no reset.
     this.#ports.connect().catch((cause: unknown) => {
       if (this.#disposed) reportCaughtError(cause);
-      else
-        reportCatchFailure(
-          "Could not reconnect the terminal. Try again.",
-          cause,
-        );
+      else reportCatchFailure("Could not reconnect the terminal", cause);
     });
   }
 
@@ -204,10 +200,7 @@ export class LightController {
         this.#apply(
           this.#discipline.fail(
             "light",
-            failureMessage(
-              "The light shell could not run this command.",
-              cause,
-            ),
+            failureMessage("The light shell could not run this command", cause),
           ),
         );
       })
@@ -227,7 +220,7 @@ export class LightController {
         reportCaughtError(cause);
         return;
       }
-      reportCatchFailure("Could not open the full shell. Try again.", cause);
+      reportCatchFailure("Could not open the full shell", cause);
       if (this.#mode !== "full") return;
       this.#mode = "light";
       this.#drop();

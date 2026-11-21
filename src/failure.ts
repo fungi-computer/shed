@@ -1,6 +1,6 @@
 import * as Redacted from "effect/Redacted";
 import { toast } from "@fungi.computer/caps/components/toaster";
-import { AppError, describeAppError } from "@fungi.computer/agar/errors";
+import { typedFailureMessage } from "@fungi.computer/agar/errors";
 import { describeComputerRefusal } from "@fungi.computer/agar/computer";
 import type { RunCommandRefusal } from "./light-shell/run-command-contract.js";
 
@@ -15,15 +15,14 @@ export class ComputerDeclined extends Error {
 }
 
 /**
- * The one sentence a failure toast shows: the decoded cause when the failure
- * names one (a Computer refusal, or a host-stated AppError reason), otherwise
- * the caller's authored message. Exception text never reaches it.
+ * The one sentence a failure toast shows: what failed, then the decoded cause
+ * (a Computer refusal, or an App error's stated cause). Any other rejection
+ * may carry private host text, so it says only that the host returned an error
+ * it did not describe; exception text never reaches the toast.
  */
-export function failureMessage(fallback: string, cause: unknown): string {
-  if (cause instanceof ComputerDeclined) return cause.message;
-  if (cause instanceof AppError && cause.reason !== undefined)
-    return describeAppError(cause).message;
-  return fallback;
+export function failureMessage(what: string, cause: unknown): string {
+  if (cause instanceof ComputerDeclined) return `${what}: ${cause.message}`;
+  return typedFailureMessage(what, cause);
 }
 
 export function reportCatchFailure(message: string, cause: unknown): void {

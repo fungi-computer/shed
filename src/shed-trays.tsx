@@ -23,6 +23,7 @@ import { IconButton } from "@fungi.computer/caps/components/icon-button";
 import { ArrowUpRight, Globe2, RefreshCw, X } from "lucide-react";
 import { reorderKeyAttribute } from "@fungi.computer/caps/lib/reorder-motion";
 import { useState, type ReactNode } from "react";
+import { failureMessage } from "./failure.js";
 import { AnimatedInventoryList } from "./inventory-list.js";
 import { useShedProcessPanel } from "./shed-process-panel.js";
 
@@ -88,15 +89,20 @@ export function ShedTrays({
   const portForm = useSchemaForm({
     schema: portFields,
     defaultValues: { port: 5173 },
-    onSubmit: async ({ port }) =>
-      (await onExposePort?.(port))
+    onSubmit: async ({ port }) => {
+      const result = await onExposePort?.(port);
+      return result === true
         ? { kind: "saved" }
         : {
             kind: "refused",
             fields: {
-              port: `Couldn't expose port ${String(port)}. Try again.`,
+              port: failureMessage(
+                `Couldn't expose port ${String(port)}`,
+                result?.failed,
+              ),
             },
-          },
+          };
+    },
   });
   const clearPortRefusal = () => {
     portForm.form.setFieldMeta("port", (meta) => ({
@@ -106,7 +112,7 @@ export function ShedTrays({
   };
   const retryPort = async (port: number) => {
     if (
-      (await onExposePort?.(port)) &&
+      (await onExposePort?.(port)) === true &&
       portForm.form.state.values.port === port
     )
       clearPortRefusal();
@@ -159,9 +165,12 @@ export function ShedTrays({
               const pending = action?.status === "pending";
               const failure =
                 action?.status === "failed"
-                  ? action.expose
-                    ? `Couldn't expose port ${String(port)}. Try again.`
-                    : "Couldn't remove exposure. Try again."
+                  ? failureMessage(
+                      action.expose
+                        ? `Couldn't expose port ${String(port)}`
+                        : "Couldn't remove exposure",
+                      action.cause,
+                    )
                   : null;
               return (
                 <StatusTrayRow

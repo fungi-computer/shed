@@ -120,10 +120,7 @@ function ShedWorkspace({
                 void app.ui
                   .requestAppPermissions({ computers: ["computer.execute"] })
                   .catch((cause: unknown) => {
-                    reportCatchFailure(
-                      "Could not open App permissions. Try again.",
-                      cause,
-                    );
+                    reportCatchFailure("Could not open App permissions", cause);
                     return undefined;
                   })
             : undefined
@@ -143,10 +140,7 @@ function ShedWorkspace({
             void app.ui
               .requestAppPermissions({ computers: ["computer.execute"] })
               .catch((cause: unknown) => {
-                reportCatchFailure(
-                  "Could not open App permissions. Try again.",
-                  cause,
-                );
+                reportCatchFailure("Could not open App permissions", cause);
               })
         : undefined;
 
@@ -679,7 +673,7 @@ function ShedLayout({
                           })
                           .catch((cause: unknown) => {
                             reportCatchFailure(
-                              "Could not open App permissions. Try again.",
+                              "Could not open App permissions",
                               cause,
                             );
                             return undefined;

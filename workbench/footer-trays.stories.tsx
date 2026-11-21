@@ -120,7 +120,7 @@ function Cap({
         ? current
         : [...current, makePort(port)],
     );
-    return true;
+    return true as const;
   };
   const unexpose = (port: number) => {
     setShownPorts((current) => current.filter((item) => item.port !== port));

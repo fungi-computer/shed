@@ -19,7 +19,14 @@ import { Option, Schema } from "effect";
 
 export type ComputerPortsStatus =
   "loading" | "loaded" | "error" | "unavailable" | "not-configured";
-export type PortAction = { expose: boolean; status: "pending" | "failed" };
+export type PortAction = {
+  expose: boolean;
+  status: "pending" | "failed";
+  /** Why the change failed; absent while it is pending. */
+  cause?: unknown;
+};
+/** A port change that landed, or the failure that stopped it. */
+export type PortChangeResult = true | Readonly<{ failed: unknown }>;
 const portChangeSchema = Schema.Struct({
   port: computerPortExposureSchema.fields.port,
   expose: Schema.Boolean,
@@ -69,15 +76,17 @@ export function useShedPorts(app: QueryApp | null, visible: boolean) {
     select: ({ state }) => ({
       change: Option.getOrNull(readPortChange(state.variables)),
       status: state.status,
+      error: state.error,
     }),
   });
   const actions = new Map<number, PortAction>();
-  for (const { change, status } of mutations) {
+  for (const { change, status, error } of mutations) {
     if (!change) continue;
     if (status === "pending" || status === "error")
       actions.set(change.port, {
         expose: change.expose,
         status: status === "pending" ? "pending" : "failed",
+        cause: error,
       });
     else actions.delete(change.port);
   }
@@ -100,12 +109,15 @@ export function useShedPorts(app: QueryApp | null, visible: boolean) {
     ports:
       enabled && query.data && "ports" in query.data ? query.data.ports : null,
     // Query retains row failures; the form also needs the completed result.
-    change: async (port: number, expose: boolean): Promise<boolean> => {
+    change: async (
+      port: number,
+      expose: boolean,
+    ): Promise<PortChangeResult> => {
       try {
         await mutation.mutateAsync({ port, expose });
         return true;
-      } catch {
-        return false;
+      } catch (cause) {
+        return { failed: cause };
       }
     },
   };

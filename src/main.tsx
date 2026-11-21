@@ -12,7 +12,7 @@ if (!root) throw new Error("Shed root is missing");
 
 // Start the wasm compile now; it overlaps the host handshake.
 loadGhostty().catch((cause: unknown) => {
-  reportCatchFailure("The terminal operation failed. Try reconnecting.", cause);
+  reportCatchFailure("The terminal operation failed", cause);
 });
 
 mountApp(root, { name: "Shed", queryClient: createQueryClient() }, ({ app }) =>
