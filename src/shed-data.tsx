@@ -5,7 +5,11 @@ import type {
   ComputerPorts,
 } from "@fungi.computer/agar/computer";
 import { createContext, useContext } from "react";
-import type { PortAction, ComputerPortsStatus } from "./shed-ports.js";
+import type {
+  PortAction,
+  PortChangeResult,
+  ComputerPortsStatus,
+} from "./shed-ports.js";
 import type { ProcessAction } from "./shed-processes.js";
 
 export type ShedProcessCommand = { command: string; port?: number };
@@ -16,7 +20,7 @@ export type ShedData = {
     status: ComputerPortsStatus;
     actions?: ReadonlyMap<number, PortAction>;
     refresh?: () => void | Promise<void>;
-    expose?: (port: number) => boolean | Promise<boolean>;
+    expose?: (port: number) => PortChangeResult | Promise<PortChangeResult>;
     unexpose?: (port: number) => void | Promise<void>;
   };
   processes: {

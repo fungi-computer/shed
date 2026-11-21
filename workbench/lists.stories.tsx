@@ -43,7 +43,7 @@ export function PortsAndProcesses() {
         ? current
         : [...current, previewPort(port)],
     );
-    return true;
+    return true as const;
   };
   const unexpose = (port: number) => {
     setPorts((current) => current.filter((item) => item.port !== port));

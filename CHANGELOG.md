@@ -1,5 +1,21 @@
 # @fungi.computer/shed
 
+## 0.11.1
+
+### Patch Changes
+
+- Changes since 0.11.0:
+
+  - fix(shed): let the port change result carry its failure through the stories
+    and tests
+  - fix(shed): name why a Shed, Bonsai, Inkcap or TUI action failed
+
+- Updated dependencies
+- Updated dependencies
+  - @fungi.computer/agar@0.27.1
+  - @fungi.computer/computer-contract@0.6.3
+  - @fungi.computer/braid@0.6.9
+
 ## 0.11.0
 
 ### Minor Changes

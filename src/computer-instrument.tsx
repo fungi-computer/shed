@@ -63,7 +63,7 @@ export function useComputerAccessTray({
     try {
       await app.ui.requestAppPermissions({});
     } catch (cause) {
-      reportCatchFailure("Could not open App permissions. Try again.", cause);
+      reportCatchFailure("Could not open App permissions", cause);
     } finally {
       setRequesting(false);
     }

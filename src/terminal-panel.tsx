@@ -243,11 +243,7 @@ export function TerminalPanel({
         })
         .catch((cause: unknown) => {
           if (!alive) reportCaughtError(cause);
-          else
-            reportCatchFailure(
-              "The terminal operation failed. Try reconnecting.",
-              cause,
-            );
+          else reportCatchFailure("The terminal operation failed", cause);
         });
     };
     const hide = () => terminalRef.current?.blur();
@@ -278,11 +274,7 @@ export function TerminalPanel({
           ?.write(new TextEncoder().encode(text))
           .catch((cause: unknown) => {
             if (!alive) reportCaughtError(cause);
-            else
-              reportCatchFailure(
-                "The terminal operation failed. Try reconnecting.",
-                cause,
-              );
+            else reportCatchFailure("The terminal operation failed", cause);
           });
       };
       const key = (name: string) =>
@@ -353,11 +345,7 @@ export function TerminalPanel({
               ?.write(encoder.encode(data))
               .catch((cause: unknown) => {
                 if (!alive) reportCaughtError(cause);
-                else
-                  reportCatchFailure(
-                    "The terminal operation failed. Try reconnecting.",
-                    cause,
-                  );
+                else reportCatchFailure("The terminal operation failed", cause);
               });
           });
           terminal.attachCustomKeyEventHandler(
@@ -397,10 +385,7 @@ export function TerminalPanel({
                 reportCaughtError(cause);
                 return;
               }
-              reportCatchFailure(
-                "The terminal operation failed. Try reconnecting.",
-                cause,
-              );
+              reportCatchFailure("The terminal operation failed", cause);
               setState("failed");
             });
         }, themeRoot);
@@ -415,10 +400,7 @@ export function TerminalPanel({
           reportCaughtError(cause);
           return;
         }
-        reportCatchFailure(
-          "The terminal operation failed. Try reconnecting.",
-          cause,
-        );
+        reportCatchFailure("The terminal operation failed", cause);
         setState("failed");
       });
 
@@ -521,10 +503,7 @@ export function TerminalPanel({
           reportCaughtError(cause);
           return;
         }
-        reportCatchFailure(
-          "The terminal operation failed. Try reconnecting.",
-          cause,
-        );
+        reportCatchFailure("The terminal operation failed", cause);
         setState("failed");
         return;
       }
@@ -634,10 +613,7 @@ export function TerminalPanel({
           reportCaughtError(cause);
           return;
         }
-        reportCatchFailure(
-          "The terminal operation failed. Try reconnecting.",
-          cause,
-        );
+        reportCatchFailure("The terminal operation failed", cause);
         setState("failed");
       }
     };
@@ -765,7 +741,7 @@ export function TerminalPanel({
                       (cause: unknown) => {
                         setSetupWaiting(false);
                         reportCatchFailure(
-                          "Could not open Computer settings. Try again.",
+                          "Could not open Computer settings",
                           cause,
                         );
                       },
