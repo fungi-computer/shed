@@ -1,5 +1,13 @@
 # @fungi.computer/shed
 
+## 0.11.6
+
+### Patch Changes
+
+- Changes since 0.11.5:
+
+  - fix(shed): show a refused Computer's cause alone in the light shell line
+
 ## 0.11.5
 
 ### Patch Changes

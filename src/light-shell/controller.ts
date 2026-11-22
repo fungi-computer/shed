@@ -1,5 +1,6 @@
 import type { ShellRoute } from "./shell-route.js";
 import {
+  ComputerDeclined,
   failureMessage,
   reportCaughtError,
   reportCatchFailure,
@@ -200,7 +201,13 @@ export class LightController {
         this.#apply(
           this.#discipline.fail(
             "light",
-            failureMessage("The light shell could not run this command", cause),
+            // A Computer's refusal already says why; a prefix would only repeat it.
+            cause instanceof ComputerDeclined
+              ? cause.message
+              : failureMessage(
+                  "The light shell could not run this command",
+                  cause,
+                ),
           ),
         );
       })
