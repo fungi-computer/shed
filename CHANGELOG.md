@@ -1,5 +1,16 @@
 # @fungi.computer/shed
 
+## 0.11.15
+
+### Patch Changes
+
+- Updated dependencies
+  - @fungi.computer/cairn@0.1.1
+  - @fungi.computer/agar@0.29.1
+  - @fungi.computer/braid@0.6.20
+  - @fungi.computer/computer-contract@0.6.8
+  - @fungi.computer/caps@0.14.2
+
 ## 0.11.14
 
 ### Patch Changes
