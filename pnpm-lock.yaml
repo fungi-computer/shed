@@ -32,8 +32,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       '@fungi.computer/caps':
-        specifier: 0.14.3
-        version: 0.14.3(@tanstack/react-form@1.33.5(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.14.4
+        version: 0.14.4(@tanstack/react-form@1.33.5(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@fungi.computer/computer-contract':
         specifier: 0.6.14
         version: 0.6.14(@aws-sdk/credential-provider-node@3.972.99)(@opentui/keymap@0.5.10(react@18.3.1)(typescript@5.9.3)(web-tree-sitter@0.25.10))(@smithy/signature-v4@5.7.5)(@types/json-schema@7.0.15)(undici@8.13.1)(ws@8.23.0)
@@ -853,8 +853,8 @@ packages:
   '@fungi.computer/capnweb@0.12.0-fungi.0':
     resolution: {integrity: sha512-82WCBlrbJRx8Y6i+aMfF11seh4wb9aosgSrEvNulx6FqqNyDP/X5YyjL4pXItuQvAVKpt9sCjcE4zkXJvCqZDQ==}
 
-  '@fungi.computer/caps@0.14.3':
-    resolution: {integrity: sha512-EIxKsl7fIGlQBslPgC7QKY8fsqW9Rc+w08wWfgehhZtaIDd2nuI50udcScmzH2TFIstb+/GvyI8waWmv/f+RBw==}
+  '@fungi.computer/caps@0.14.4':
+    resolution: {integrity: sha512-OiWF9SgU9Xa3dCkmB2siDsM2VFrH4F3yKACe4yNQuXm2tVu4mmLzgQbDPSIhQwUxABURIAvEpu4MRgFsvwPfew==}
     peerDependencies:
       '@tanstack/react-form': ^1.33.2
       effect: 4.0.2
@@ -5394,7 +5394,7 @@ snapshots:
 
   '@fungi.computer/capnweb@0.12.0-fungi.0': {}
 
-  '@fungi.computer/caps@0.14.3(@tanstack/react-form@1.33.5(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@fungi.computer/caps@0.14.4(@tanstack/react-form@1.33.5(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.3)(effect@4.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@base-ui/react': 1.9.0(@types/react@18.3.3)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@fungi.computer/stipe': 0.1.1
