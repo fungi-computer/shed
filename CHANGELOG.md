@@ -1,5 +1,13 @@
 # @fungi.computer/shed
 
+## 0.11.27
+
+### Patch Changes
+
+- @fungi.computer/agar@0.30.2
+  - @fungi.computer/braid@0.6.29
+  - @fungi.computer/computer-contract@0.6.17
+
 ## 0.11.26
 
 ### Patch Changes
